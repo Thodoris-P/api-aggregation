@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text;
+using System.Text.Json;
 using ApiAggregation.Infrastructure;
 using ApiAggregation.Services;
 using ApiAggregation.Services.Abstractions;
@@ -72,7 +74,14 @@ builder.Services.AddHttpClient<IExternalApiClient, OpenWeatherMapClient>((servic
             {
                 FallbackAction = _ => Outcome.FromResultAsValueTask(new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent("The service is currently unavailable. Please try again later.")
+                    Content = new StringContent(
+                        JsonSerializer.Serialize(new ApiResponse
+                        {
+                            Content = "The service is currently unavailable. Please try again later."
+                        }),
+                        Encoding.UTF8,
+                        "application/json"
+                    )
                 })
             });
 

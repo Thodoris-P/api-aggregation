@@ -8,6 +8,7 @@ public class CachingExternalApiClientDecorator : IExternalApiClient
     private readonly IExternalApiClient _innerClient;
     private readonly HybridCache _hybridCache;
     private readonly HybridCacheEntryOptions _cacheOptions; 
+    public string ApiName => _innerClient.ApiName;
     
     public CachingExternalApiClientDecorator(
         IExternalApiClient innerClient, 
@@ -19,18 +20,24 @@ public class CachingExternalApiClientDecorator : IExternalApiClient
         _cacheOptions = new HybridCacheEntryOptions { Expiration = cacheDuration, LocalCacheExpiration = cacheDuration };
     }
 
-    public string ApiName { get; }
 
-    public async Task<string> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
+     public async Task<ApiResponse> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
     {
-        string cacheKey = $"{_innerClient.GetType().Name}_{filterOptions}";
+        string cacheKey = $"{ApiName}_{filterOptions}";
 
-        string response =  await _hybridCache.GetOrCreateAsync<string>(
-                            cacheKey,
-                            async _ => await _innerClient.GetDataAsync(filterOptions, cancellationToken), 
-                            _cacheOptions,
-                            cancellationToken: cancellationToken);
-        
-        return response;
+        var cachedResponse = await _hybridCache.GetOrCreateAsync<ApiResponse>(
+            cacheKey,
+            async _ => await _innerClient.GetDataAsync(filterOptions, cancellationToken),
+            _cacheOptions,
+            cancellationToken: cancellationToken);
+
+        // Do not cache failed / fallback responses.
+        if (!cachedResponse.IsSuccess)
+        {
+            await _hybridCache.RemoveAsync(cacheKey, cancellationToken);
+        }
+
+        return cachedResponse;
     }
 }
+

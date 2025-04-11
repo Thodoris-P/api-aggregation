@@ -1,3 +1,4 @@
+using System.Net;
 using ApiAggregation.Services.Abstractions;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
@@ -16,16 +17,31 @@ public class OpenWeatherMapClient : IExternalApiClient
         _openWeatherMapSettings = settings.Value;
     }
     
-    public async Task<string> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
+    public async Task<ApiResponse> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
     {
         string endpoint =
             $"weather?q={filterOptions.Keyword}&appid={_openWeatherMapSettings.ApiKey}&units=metric";
+        
         var response = await _httpClient.GetAsync(endpoint, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 
+        //TODO: Add proper handling of fallback responses
         string content = await response.Content.ReadAsStringAsync(cancellationToken);
-        return content;
+        if (content.Contains("unavailable", StringComparison.InvariantCultureIgnoreCase))
+        {
+            return new ApiResponse()
+            {
+                IsSuccess =  false,
+                Content = content
+            };
+        }
+        
+        return new ApiResponse()
+        {
+            IsSuccess = response.IsSuccessStatusCode,
+            Content = content
+        };
     }
 }
 

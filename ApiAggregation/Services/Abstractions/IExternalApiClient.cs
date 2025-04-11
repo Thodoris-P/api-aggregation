@@ -13,5 +13,11 @@ public class ExternalApiFilter : IExternalApiFilter
 public interface IExternalApiClient
 {
     string ApiName { get; }
-    Task<string> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default);
+    Task<ApiResponse> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default);
+}
+
+public class ApiResponse
+{
+    public bool IsSuccess { get; set; } = false;
+    public string Content { get; set; }
 }

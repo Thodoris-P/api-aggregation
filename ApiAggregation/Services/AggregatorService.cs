@@ -18,11 +18,11 @@ public class AggregatorService : IAggregatorService
     public async Task<AggregatedData> GetAggregatedDataAsync(IExternalApiFilter filterOptions)
     {
         var tasks = _apiClients.Select(api => api.GetDataAsync(filterOptions));
-        string[] responses = await Task.WhenAll(tasks);
-
-        return new AggregatedData
+        var responses = await Task.WhenAll(tasks);
+        var aggregatedData = new AggregatedData
         {
-            RawResponses = responses.ToList()
+            RawResponses = responses.Select(x => x.Content).ToList(),
         };
+        return aggregatedData;
     }
 }
