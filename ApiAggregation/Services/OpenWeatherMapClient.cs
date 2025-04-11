@@ -18,7 +18,9 @@ public class OpenWeatherMapClient : IExternalApiClient
     
     public async Task<string> GetDataAsync(IExternalApiFilter filterOptions)
     {
-        var response = await _httpClient.GetAsync($"{_openWeatherMapSettings.BaseUrl}weather?q={filterOptions.Keyword}&appid={_openWeatherMapSettings.ApiKey}&units=metric");
+        string endpoint =
+            $"weather?q={filterOptions.Keyword}&appid={_openWeatherMapSettings.ApiKey}&units=metric";
+        var response = await _httpClient.GetAsync(endpoint);
 
         response.EnsureSuccessStatusCode();
 
