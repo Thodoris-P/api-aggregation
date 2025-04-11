@@ -1,0 +1,6 @@
+﻿services:
+  apiaggregation:
+    image: apiaggregation
+    build:
+      context: .
+      dockerfile: ApiAggregation/Dockerfile
