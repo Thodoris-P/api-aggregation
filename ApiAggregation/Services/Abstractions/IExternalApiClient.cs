@@ -13,5 +13,5 @@ public class ExternalApiFilter : IExternalApiFilter
 public interface IExternalApiClient
 {
     string ApiName { get; }
-    Task<string> GetDataAsync(IExternalApiFilter filterOptions);
+    Task<string> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default);
 }

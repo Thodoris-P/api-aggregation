@@ -16,15 +16,15 @@ public class OpenWeatherMapClient : IExternalApiClient
         _openWeatherMapSettings = settings.Value;
     }
     
-    public async Task<string> GetDataAsync(IExternalApiFilter filterOptions)
+    public async Task<string> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
     {
         string endpoint =
             $"weather?q={filterOptions.Keyword}&appid={_openWeatherMapSettings.ApiKey}&units=metric";
-        var response = await _httpClient.GetAsync(endpoint);
+        var response = await _httpClient.GetAsync(endpoint, cancellationToken);
 
         response.EnsureSuccessStatusCode();
 
-        string content = await response.Content.ReadAsStringAsync();
+        string content = await response.Content.ReadAsStringAsync(cancellationToken);
         return content;
     }
 }

@@ -1,12 +1,12 @@
 using ApiAggregation.Infrastructure;
 using ApiAggregation.Services;
 using ApiAggregation.Services.Abstractions;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Load configuration
-// Add services to the container.
+builder.Services.AddHybridCache();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -24,6 +24,22 @@ builder.Services.AddHttpClient<IExternalApiClient, OpenWeatherMapClient>((servic
         client.BaseAddress = new Uri(settings.BaseUrl);
     })
     .AddHttpMessageHandler<StatisticsHandler>();
+
+
+builder.Services.AddHttpClient<OpenWeatherMapClient>((sp, client) =>
+{
+    var settings = sp.GetRequiredService<IOptions<OpenWeatherMapSettings>>().Value;
+    client.BaseAddress = new Uri(settings.BaseUrl);
+}).AddHttpMessageHandler<StatisticsHandler>();
+builder.Services.Decorate<IExternalApiClient>((inner, sp) =>
+    new CachingExternalApiClientDecorator(
+        inner,
+        sp.GetRequiredService<HybridCache>(),
+        TimeSpan.FromMinutes(1) //TODO: Abstract cache duration. An option is to use OpenWeatherMapSettings
+    )
+);
+
+
 builder.Services.AddScoped<IAggregatorService, AggregatorService>();
 
 
