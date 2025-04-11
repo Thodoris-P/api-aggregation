@@ -15,7 +15,7 @@ public class StatisticsHandler : DelegatingHandler
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
-        string requestUri = request.RequestUri?.ToString() ?? "unknown";
+        string requestUri = request.RequestUri?.Host ?? "unknown";
         try
         {
             var response = await base.SendAsync(request, cancellationToken);
