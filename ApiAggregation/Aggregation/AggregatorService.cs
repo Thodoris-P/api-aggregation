@@ -1,6 +1,6 @@
-using ApiAggregation.Services.Abstractions;
+using ApiAggregation.ExternalApis;
 
-namespace ApiAggregation.Services;
+namespace ApiAggregation.Aggregation;
 
 public interface IAggregatorService
 {

@@ -1,7 +1,6 @@
-using ApiAggregation.Services.Abstractions;
 using Microsoft.Extensions.Caching.Hybrid;
 
-namespace ApiAggregation.Infrastructure;
+namespace ApiAggregation.ExternalApis;
 
 public class CachingExternalApiClientDecorator : IExternalApiClient
 {

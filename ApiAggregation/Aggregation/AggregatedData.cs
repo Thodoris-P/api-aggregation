@@ -1,4 +1,4 @@
-namespace ApiAggregation.Services;
+namespace ApiAggregation.Aggregation;
 
 public class AggregatedData
 {

@@ -1,4 +1,4 @@
-namespace ApiAggregation.Services.Abstractions;
+namespace ApiAggregation.ExternalApis;
 
 public interface IExternalApiFilter
 {

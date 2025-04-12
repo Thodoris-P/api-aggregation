@@ -1,9 +1,7 @@
-using System.Net;
-using ApiAggregation.Services.Abstractions;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 
-namespace ApiAggregation.Services;
+namespace ApiAggregation.ExternalApis;
 
 public class OpenWeatherMapClient : IExternalApiClient
 {

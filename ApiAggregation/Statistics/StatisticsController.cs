@@ -1,8 +1,7 @@
-using ApiAggregation.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ApiAggregation.Controllers;
+namespace ApiAggregation.Statistics;
 
 [ApiController]
 [Route("api/statistics")]

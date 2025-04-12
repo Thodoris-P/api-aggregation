@@ -1,10 +1,10 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using ApiAggregation.Aggregation;
 using ApiAggregation.Authentication;
-using ApiAggregation.Infrastructure;
-using ApiAggregation.Services;
-using ApiAggregation.Services.Abstractions;
+using ApiAggregation.ExternalApis;
+using ApiAggregation.Statistics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Http.Resilience;

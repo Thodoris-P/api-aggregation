@@ -1,11 +1,8 @@
-
-
-using ApiAggregation.Services;
-using ApiAggregation.Services.Abstractions;
+using ApiAggregation.ExternalApis;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ApiAggregation.Controllers;
+namespace ApiAggregation.Aggregation;
 
 [ApiController]
 [Route("api/aggregation")]

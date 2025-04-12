@@ -1,7 +1,6 @@
 using System.Diagnostics;
-using ApiAggregation.Services;
 
-namespace ApiAggregation.Infrastructure;
+namespace ApiAggregation.Statistics;
 
 public class StatisticsHandler : DelegatingHandler
 {

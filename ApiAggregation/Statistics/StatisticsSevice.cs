@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace ApiAggregation.Services;
+namespace ApiAggregation.Statistics;
 
 public interface IStatisticsSevice
 {
