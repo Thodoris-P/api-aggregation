@@ -23,7 +23,7 @@ public class CachingExternalApiClientDecorator : IExternalApiClient
     }
 
 
-     public async Task<ApiResponse> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
+     public async Task<ApiResponse?> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
     {
         string cacheKey = $"{ApiName}_{filterOptions}";
 

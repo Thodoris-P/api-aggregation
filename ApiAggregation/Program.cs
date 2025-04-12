@@ -4,11 +4,11 @@ using System.Text.Json;
 using ApiAggregation.Aggregation;
 using ApiAggregation.Authentication;
 using ApiAggregation.ExternalApis;
+using ApiAggregation.ExternalApis.ConcreteClients;
 using ApiAggregation.Statistics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Http.Resilience;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Polly;
 using Polly.Fallback;
@@ -17,7 +17,7 @@ using Serilog;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure JWT Authentication
-var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
+byte[] key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -62,6 +62,10 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddTransient<StatisticsHandler>();
+
+builder.Services.Configure<SpotifyTokenSettings>(builder.Configuration.GetSection("Spotify-Token"));
+builder.Services.AddScoped<ISpotifyTokenService, SpotifyTokenService>();
+
 
 builder.Services.Configure<OpenWeatherMapSettings>(builder.Configuration.GetSection("OpenWeatherMap"));
 builder.Services.AddHttpClient("OpenWeatherMap", client =>
@@ -189,8 +193,72 @@ builder.Services.AddHttpClient("NewsApi", client =>
             builder.AddTimeout(TimeSpan.FromSeconds(5));
         });
 
+builder.Services.Configure<SpotifySettings>(builder.Configuration.GetSection("Spotify"));
+builder.Services.AddHttpClient("Spotify", client =>
+    {
+        var settings = builder.Configuration.GetSection("Spotify").Get<SpotifySettings>();
+        client.BaseAddress = new Uri(settings.BaseUrl);
+    })
+    .AddHttpMessageHandler<StatisticsHandler>()
+    .AddResilienceHandler(
+        "CustomPipeline",
+        static builder =>
+        {
+            // See: https://www.pollydocs.org/strategies/retry.html
+            builder.AddRetry(new HttpRetryStrategyOptions
+            {
+                BackoffType = DelayBackoffType.Exponential,
+                MaxRetryAttempts = 5,
+                UseJitter = true
+            });
+
+            // See: https://www.pollydocs.org/strategies/circuit-breaker.html
+            builder.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+            {
+                // Customize and configure the circuit breaker logic.
+                SamplingDuration = TimeSpan.FromSeconds(10),
+                FailureRatio = 0.2,
+                MinimumThroughput = 3,
+                ShouldHandle = static args => ValueTask.FromResult(args is
+                {
+                    Outcome.Result.StatusCode:
+                    HttpStatusCode.RequestTimeout or
+                    HttpStatusCode.TooManyRequests
+                })
+            });
+
+            builder.AddConcurrencyLimiter(100);
+
+            var fallbackStrategyOptions = new FallbackStrategyOptions<HttpResponseMessage>()
+            {
+                FallbackAction = _ =>
+                {
+                    Log.Logger.Error("External API request failed. Resorting to fallback value");
+                    return Outcome.FromResultAsValueTask(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Headers = { { "X-Fallback-Response", "true" } },
+                        Content = new StringContent(
+                            JsonSerializer.Serialize(new ApiResponse
+                            {
+                                Content = "The service is currently unavailable. Please try again later.",
+                                IsFallback = true,
+                                IsSuccess = false
+                            }),
+                            Encoding.UTF8,
+                            "application/json"
+                        )
+                    });
+                }
+            };
+            builder.AddFallback(fallbackStrategyOptions);
+
+            // See: https://www.pollydocs.org/strategies/timeout.html
+            builder.AddTimeout(TimeSpan.FromSeconds(5));
+        });
+
 builder.Services.AddScoped<IExternalApiClient, OpenWeatherMapClient>();
 builder.Services.AddScoped<IExternalApiClient, NewsClient>();
+builder.Services.AddScoped<IExternalApiClient, SpotifyClient>();
 
 builder.Services.Decorate<IExternalApiClient>((inner, sp) =>
     new CachingExternalApiClientDecorator(
