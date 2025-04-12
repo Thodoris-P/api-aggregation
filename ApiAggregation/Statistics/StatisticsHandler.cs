@@ -2,15 +2,8 @@ using System.Diagnostics;
 
 namespace ApiAggregation.Statistics;
 
-public class StatisticsHandler : DelegatingHandler
+public class StatisticsHandler(IStatisticsService statisticsService) : DelegatingHandler
 {
-    private readonly IStatisticsSevice _statisticsService;
-
-    public StatisticsHandler(IStatisticsSevice statisticsService)
-    {
-        _statisticsService = statisticsService;
-    }
-    
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var stopwatch = Stopwatch.StartNew();
@@ -19,14 +12,13 @@ public class StatisticsHandler : DelegatingHandler
         {
             var response = await base.SendAsync(request, cancellationToken);
             stopwatch.Stop();
-            _statisticsService.UpdateApiStatistics(requestUri, stopwatch.ElapsedMilliseconds);
+            statisticsService.UpdateApiStatistics(requestUri, stopwatch.ElapsedMilliseconds);
             return response;
         }
-        catch (Exception e)
+        catch (Exception)
         {
             stopwatch.Stop();
-            _statisticsService.UpdateApiStatistics(requestUri, stopwatch.ElapsedMilliseconds);
-            Console.WriteLine(e);
+            statisticsService.UpdateApiStatistics(requestUri, stopwatch.ElapsedMilliseconds);
             throw;
         }
     }

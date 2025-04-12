@@ -6,18 +6,11 @@ namespace ApiAggregation.Statistics;
 [ApiController]
 [Route("api/statistics")]
 [Authorize]
-public class StatisticsController : ControllerBase
+public class StatisticsController(IStatisticsService statisticsService) : ControllerBase
 {
-    private readonly IStatisticsSevice _statisticsService;
-
-    public StatisticsController(IStatisticsSevice statisticsService)
-    {
-        _statisticsService = statisticsService;
-    }
-
     [HttpGet]
     public IActionResult Get()
     {
-        return Ok(_statisticsService.GetApiStatistics());
+        return Ok(statisticsService.GetApiStatistics());
     }
 }

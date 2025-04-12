@@ -60,7 +60,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
-builder.Services.AddSingleton<IStatisticsSevice, StatisticsSevice>();
+builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddTransient<StatisticsHandler>();
 
 builder.Services.Configure<OpenWeatherMapSettings>(builder.Configuration.GetSection("OpenWeatherMap"));
@@ -136,13 +136,19 @@ builder.Services.Decorate<IExternalApiClient>((inner, sp) =>
     )
 );
 
-
+builder.Services.Configure<AggregatorSettings>(
+    builder.Configuration.GetSection("AggregatorSettings"));
 builder.Services.AddScoped<IAggregatorService, AggregatorService>();
-
+builder.Services.Configure<StatisticsCleanupOptions>(builder.Configuration.GetSection("StatisticsCleanupOptions"));
+builder.Services.AddHostedService<StatisticsCleanupService>();
+// Bind PerformanceMonitoringOptions from your configuration (e.g., appsettings.json).
+builder.Services.Configure<PerformanceMonitoringOptions>(builder.Configuration.GetSection("PerformanceMonitoringOptions"));
+builder.Services.AddHostedService<PerformanceMonitoringService>();
 
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
+app.UseMiddleware<RequestStatisticsMiddleware>();
 
 // Last resort error handling middleware
 app.Use(async (context, next) =>
