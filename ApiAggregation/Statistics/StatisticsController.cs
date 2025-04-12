@@ -9,8 +9,8 @@ namespace ApiAggregation.Statistics;
 public class StatisticsController(IStatisticsService statisticsService) : ControllerBase
 {
     [HttpGet]
-    public IActionResult Get()
+    public async Task<IActionResult> Get()
     {
-        return Ok(statisticsService.GetApiStatistics());
+        return Ok(await statisticsService.GetApiStatistics());
     }
 }

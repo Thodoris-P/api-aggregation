@@ -1,10 +1,13 @@
 using System.Collections.Concurrent;
+using ApiAggregation.ExternalApis;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.VisualBasic;
 
 namespace ApiAggregation.Statistics;
 
 public interface IStatisticsService
 {
-    Dictionary<string, Dictionary<string, ApiStatistics>> GetApiStatistics();
+    Task<Dictionary<string, Dictionary<string, ApiStatistics>>> GetApiStatistics();
     void UpdateApiStatistics(string apiName, long elapsedMilliseconds);
     List<ApiPerformanceRecord> GetApiPerformanceRecords(string apiName, DateTime since);
     void CleanupOldEntries(TimeSpan retentionPeriod);
@@ -30,11 +33,21 @@ public class ApiStatistics
 // We could use a sliding window or a fixed size buffer to limit the number of stored times,
 // but .NET doesn't provide such a structure out of the box
 // and implementing one would be out of scope for this assignment
-public class StatisticsService : IStatisticsService
+public class StatisticsService(HybridCache hybridCache) : IStatisticsService
 {
     private readonly ConcurrentDictionary<string, ConcurrentQueue<ApiPerformanceRecord>> _requestRecords = new();
     
-    public Dictionary<string, Dictionary<string, ApiStatistics>> GetApiStatistics()
+    public async Task<Dictionary<string, Dictionary<string, ApiStatistics>>> GetApiStatistics()
+    {
+        const string cacheKey = "stats_data";
+
+        var cachedResponse = await hybridCache.GetOrCreateAsync(
+            cacheKey, _ =>  ValueTask.FromResult(PerformStatisticsCalculations(_requestRecords)));
+        return cachedResponse;
+    }
+
+    private static Dictionary<string, Dictionary<string, ApiStatistics>> PerformStatisticsCalculations(
+        ConcurrentDictionary<string, ConcurrentQueue<ApiPerformanceRecord>> requestRecords)
     {
         var result = new Dictionary<string, Dictionary<string, ApiStatistics>>
         {
@@ -43,7 +56,7 @@ public class StatisticsService : IStatisticsService
             ["Slow"] = []
         };
         
-        foreach ((string? apiName, var times) in _requestRecords)
+        foreach ((string? apiName, var times) in requestRecords)
         {
             // Utilize the snapshot pattern to avoid getting mixed results
             var snapshot = times.ToArray();
@@ -67,7 +80,7 @@ public class StatisticsService : IStatisticsService
         
         return result;
     }
-    
+
     private static string GetPerformanceBucket(double averageTime)
     {
         return averageTime switch
