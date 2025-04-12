@@ -15,7 +15,7 @@ public class AggregatorService(IEnumerable<IExternalApiClient> apiClients) : IAg
         var responses = await Task.WhenAll(tasks);
         var aggregatedData = new AggregatedData
         {
-            RawResponses = responses.Select(x => x.Content).ToList(),
+            ApiResponses = responses.ToDictionary(x => x.ApiName, x => x.Content),
         };
         return aggregatedData;
     }

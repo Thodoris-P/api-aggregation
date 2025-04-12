@@ -9,19 +9,12 @@ namespace ApiAggregation.Aggregation;
 [Route("api/aggregation")]
 [Authorize]
 [TrackPerformance]
-public class AggregationController : ControllerBase
+public class AggregationController(IAggregatorService aggregatorService) : ControllerBase
 {
-    private readonly IAggregatorService _aggregator;
-        
-    public AggregationController(IAggregatorService aggregatorService)
-    {
-        _aggregator = aggregatorService;
-    }
-
     [HttpPost]
     public async Task<IActionResult> Get([FromBody]ExternalApiFilter filter)
     {
-        var data = await _aggregator.GetAggregatedDataAsync(filter);
+        var data = await aggregatorService.GetAggregatedDataAsync(filter);
         return Ok(data);
     }
 }

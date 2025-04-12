@@ -16,7 +16,7 @@ public abstract class BaseApiClient : IExternalApiClient
         Settings = settings.Value;
     }
 
-    public async Task<ApiResponse?> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
+    public async Task<ApiResponse> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
     {
         HttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AggregatorApi");
         await SetupClient(filterOptions);
@@ -31,6 +31,7 @@ public abstract class BaseApiClient : IExternalApiClient
         {
             return new ApiResponse
             {
+                ApiName = ApiName,
                 IsSuccess = false,
                 Content = "Service unavailable",
                 IsFallback = false
@@ -45,12 +46,15 @@ public abstract class BaseApiClient : IExternalApiClient
         if (!isFallback)
             return new ApiResponse
             {
+                ApiName = ApiName,
                 IsSuccess = true,
                 Content = jsonContent,
                 IsFallback = false
             };
-
-        return JsonSerializer.Deserialize<ApiResponse>(jsonContent);
+        
+        var result = JsonSerializer.Deserialize<ApiResponse>(jsonContent);
+        result.ApiName = ApiName;
+        return result;
     }
 
     protected abstract Task SetupClient(IExternalApiFilter filterOptions);

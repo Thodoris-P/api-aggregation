@@ -57,7 +57,6 @@ public class InMemoryAccountService : IAccountService
         return new AuthResponse {
             IsSuccessful = true,
             Message = "User registered successfully"
-            
         };
     }
     
