@@ -23,25 +23,24 @@ public class OpenWeatherMapClient : IExternalApiClient
             $"weather?q={filterOptions.Keyword}&appid={_openWeatherMapSettings.ApiKey}&units=metric";
         
         var response = await _httpClient.GetAsync(endpoint, cancellationToken);
-
         response.EnsureSuccessStatusCode();
+        
+        // Determine if this is a fallback response by checking the custom header
+        bool isFallback = response.Headers.TryGetValues("X-Fallback-Response", out var values) &&
+                          values.Any(v => v.Equals("true", StringComparison.OrdinalIgnoreCase));
 
-        //TODO: Add proper handling of fallback responses
-        string content = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (content.Contains("unavailable", StringComparison.InvariantCultureIgnoreCase))
-        {
+        string jsonContent = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (!isFallback)
             return new ApiResponse()
             {
-                IsSuccess =  false,
-                Content = content
+                IsSuccess = true,
+                Content = jsonContent,
+                IsFallback = false
             };
-        }
         
-        return new ApiResponse()
-        {
-            IsSuccess = response.IsSuccessStatusCode,
-            Content = content
-        };
+        var fallback = JsonSerializer.Deserialize<ApiResponse>(jsonContent);
+        return fallback;
     }
 }
 
@@ -62,4 +61,5 @@ public class OpenWeatherMapSettings
 {
     public string ApiKey { get; set; }
     public string BaseUrl { get; set; }
+    public TimeSpan CacheDuration { get; set; }
 }

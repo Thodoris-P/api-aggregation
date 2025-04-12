@@ -32,7 +32,7 @@ public class CachingExternalApiClientDecorator : IExternalApiClient
             cancellationToken: cancellationToken);
 
         // Do not cache failed / fallback responses.
-        if (!cachedResponse.IsSuccess)
+        if (cachedResponse.IsFallback)
         {
             await _hybridCache.RemoveAsync(cacheKey, cancellationToken);
         }

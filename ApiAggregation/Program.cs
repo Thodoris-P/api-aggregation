@@ -72,17 +72,24 @@ builder.Services.AddHttpClient<IExternalApiClient, OpenWeatherMapClient>((servic
 
             builder.AddFallback(new FallbackStrategyOptions<HttpResponseMessage>()
             {
-                FallbackAction = _ => Outcome.FromResultAsValueTask(new HttpResponseMessage(HttpStatusCode.OK)
+                FallbackAction = _ =>
                 {
-                    Content = new StringContent(
-                        JsonSerializer.Serialize(new ApiResponse
-                        {
-                            Content = "The service is currently unavailable. Please try again later."
-                        }),
-                        Encoding.UTF8,
-                        "application/json"
-                    )
-                })
+                    Log.Logger.Error("External API request failed. Resorting to fallback value");
+                    return Outcome.FromResultAsValueTask(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Headers = { { "X-Fallback-Response", "true" } },
+                        Content = new StringContent(
+                            JsonSerializer.Serialize(new ApiResponse
+                            {
+                                Content = "The service is currently unavailable. Please try again later.",
+                                IsFallback = true,
+                                IsSuccess = false
+                            }),
+                            Encoding.UTF8,
+                            "application/json"
+                        )
+                    });
+                }
             });
 
             // See: https://www.pollydocs.org/strategies/timeout.html
@@ -93,7 +100,7 @@ builder.Services.Decorate<IExternalApiClient>((inner, sp) =>
     new CachingExternalApiClientDecorator(
         inner,
         sp.GetRequiredService<HybridCache>(),
-        TimeSpan.FromMinutes(1) //TODO: Abstract cache duration. An option is to use OpenWeatherMapSettings
+        sp.GetRequiredService<IOptions<OpenWeatherMapSettings>>().Value.CacheDuration
     )
 );
 
@@ -104,6 +111,22 @@ builder.Services.AddScoped<IAggregatorService, AggregatorService>();
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
+
+// Last resort error handling middleware
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "Unhandled exception processing request");
+        context.Response.StatusCode = 500;
+        await context.Response.WriteAsJsonAsync(new { error = "An unexpected error occurred." });
+    }
+});
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -18,6 +18,7 @@ public interface IExternalApiClient
 
 public class ApiResponse
 {
-    public bool IsSuccess { get; set; } = false;
+    public bool IsSuccess { get; set; }
     public string Content { get; set; }
+    public bool IsFallback { get; set; }
 }
