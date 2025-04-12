@@ -1,24 +1,27 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 
+
 namespace ApiAggregation.ExternalApis;
 
 public class OpenWeatherMapClient : IExternalApiClient
 {
     public string ApiName => "OpenWeatherMap";
-    private readonly HttpClient _httpClient;
+    public ApiSettings Settings { get; set; }
     private readonly OpenWeatherMapSettings _openWeatherMapSettings;
+    private readonly HttpClient _httpClient;
 
-    public OpenWeatherMapClient(HttpClient httpClient, IOptions<OpenWeatherMapSettings> settings)
+    public OpenWeatherMapClient(IHttpClientFactory httpClientFactory, IOptions<OpenWeatherMapSettings> settings)
     {
-        _httpClient = httpClient;
+        _httpClient = httpClientFactory.CreateClient(ApiName);
+        Settings = settings.Value;
         _openWeatherMapSettings = settings.Value;
     }
-    
+
     public async Task<ApiResponse> GetDataAsync(IExternalApiFilter filterOptions, CancellationToken cancellationToken = default)
     {
         string endpoint =
-            $"weather?q={filterOptions.Keyword}&appid={_openWeatherMapSettings.ApiKey}&units=metric";
+            $"weather?q={filterOptions.City}&appid={_openWeatherMapSettings.ApiKey}&units=metric";
         
         var response = await _httpClient.GetAsync(endpoint, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -55,9 +58,13 @@ public class WeatherServiceNullResponseException : WeatherServiceException
     }
 }
 
-public class OpenWeatherMapSettings
+public class ApiSettings
 {
     public string ApiKey { get; set; }
     public string BaseUrl { get; set; }
     public TimeSpan CacheDuration { get; set; }
+}
+
+public class OpenWeatherMapSettings : ApiSettings
+{
 }

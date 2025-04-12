@@ -8,15 +8,18 @@ public class CachingExternalApiClientDecorator : IExternalApiClient
     private readonly HybridCache _hybridCache;
     private readonly HybridCacheEntryOptions _cacheOptions; 
     public string ApiName => _innerClient.ApiName;
-    
+    public ApiSettings Settings { get; set; }
+
     public CachingExternalApiClientDecorator(
         IExternalApiClient innerClient, 
-        HybridCache hybridCache, 
-        TimeSpan cacheDuration)
+        HybridCache hybridCache)
     {
         _innerClient = innerClient;
         _hybridCache = hybridCache;
-        _cacheOptions = new HybridCacheEntryOptions { Expiration = cacheDuration, LocalCacheExpiration = cacheDuration };
+        _cacheOptions = new HybridCacheEntryOptions
+        {
+            Expiration = innerClient.Settings.CacheDuration, LocalCacheExpiration = innerClient.Settings.CacheDuration
+        };
     }
 
 

@@ -64,12 +64,9 @@ builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddTransient<StatisticsHandler>();
 
 builder.Services.Configure<OpenWeatherMapSettings>(builder.Configuration.GetSection("OpenWeatherMap"));
-
-builder.Services.AddHttpClient<IExternalApiClient, OpenWeatherMapClient>((serviceProvider, client) =>
+builder.Services.AddHttpClient("OpenWeatherMap", client =>
     {
-        var settings = serviceProvider
-            .GetRequiredService<IOptions<OpenWeatherMapSettings>>().Value;
-
+        var settings = builder.Configuration.GetSection("OpenWeatherMap").Get<OpenWeatherMapSettings>();
         client.BaseAddress = new Uri(settings.BaseUrl);
     })
     .AddHttpMessageHandler<StatisticsHandler>()
@@ -102,7 +99,7 @@ builder.Services.AddHttpClient<IExternalApiClient, OpenWeatherMapClient>((servic
 
             builder.AddConcurrencyLimiter(100);
 
-            builder.AddFallback(new FallbackStrategyOptions<HttpResponseMessage>()
+            var fallbackStrategyOptions = new FallbackStrategyOptions<HttpResponseMessage>()
             {
                 FallbackAction = _ =>
                 {
@@ -122,22 +119,87 @@ builder.Services.AddHttpClient<IExternalApiClient, OpenWeatherMapClient>((servic
                         )
                     });
                 }
-            });
+            };
+            builder.AddFallback(fallbackStrategyOptions);
 
             // See: https://www.pollydocs.org/strategies/timeout.html
             builder.AddTimeout(TimeSpan.FromSeconds(5));
         });
 
+builder.Services.Configure<NewsApiSettings>(builder.Configuration.GetSection("NewsApi"));
+builder.Services.AddHttpClient("NewsApi", client =>
+    {
+        var settings = builder.Configuration.GetSection("NewsApi").Get<NewsApiSettings>();
+        client.BaseAddress = new Uri(settings.BaseUrl);
+    })
+    .AddHttpMessageHandler<StatisticsHandler>()
+    .AddResilienceHandler(
+        "CustomPipeline",
+        static builder =>
+        {
+            // See: https://www.pollydocs.org/strategies/retry.html
+            builder.AddRetry(new HttpRetryStrategyOptions
+            {
+                BackoffType = DelayBackoffType.Exponential,
+                MaxRetryAttempts = 5,
+                UseJitter = true
+            });
+
+            // See: https://www.pollydocs.org/strategies/circuit-breaker.html
+            builder.AddCircuitBreaker(new HttpCircuitBreakerStrategyOptions
+            {
+                // Customize and configure the circuit breaker logic.
+                SamplingDuration = TimeSpan.FromSeconds(10),
+                FailureRatio = 0.2,
+                MinimumThroughput = 3,
+                ShouldHandle = static args => ValueTask.FromResult(args is
+                {
+                    Outcome.Result.StatusCode:
+                    HttpStatusCode.RequestTimeout or
+                    HttpStatusCode.TooManyRequests
+                })
+            });
+
+            builder.AddConcurrencyLimiter(100);
+
+            var fallbackStrategyOptions = new FallbackStrategyOptions<HttpResponseMessage>()
+            {
+                FallbackAction = _ =>
+                {
+                    Log.Logger.Error("External API request failed. Resorting to fallback value");
+                    return Outcome.FromResultAsValueTask(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Headers = { { "X-Fallback-Response", "true" } },
+                        Content = new StringContent(
+                            JsonSerializer.Serialize(new ApiResponse
+                            {
+                                Content = "The service is currently unavailable. Please try again later.",
+                                IsFallback = true,
+                                IsSuccess = false
+                            }),
+                            Encoding.UTF8,
+                            "application/json"
+                        )
+                    });
+                }
+            };
+            builder.AddFallback(fallbackStrategyOptions);
+
+            // See: https://www.pollydocs.org/strategies/timeout.html
+            builder.AddTimeout(TimeSpan.FromSeconds(5));
+        });
+
+builder.Services.AddScoped<IExternalApiClient, OpenWeatherMapClient>();
+builder.Services.AddScoped<IExternalApiClient, NewsClient>();
+
 builder.Services.Decorate<IExternalApiClient>((inner, sp) =>
     new CachingExternalApiClientDecorator(
         inner,
-        sp.GetRequiredService<HybridCache>(),
-        sp.GetRequiredService<IOptions<OpenWeatherMapSettings>>().Value.CacheDuration
+        sp.GetRequiredService<HybridCache>()
     )
 );
 
-builder.Services.Configure<AggregatorSettings>(
-    builder.Configuration.GetSection("AggregatorSettings"));
+builder.Services.Configure<AggregatorSettings>(builder.Configuration.GetSection("AggregatorSettings"));
 builder.Services.AddScoped<IAggregatorService, AggregatorService>();
 builder.Services.Configure<StatisticsCleanupOptions>(builder.Configuration.GetSection("StatisticsCleanupOptions"));
 builder.Services.AddHostedService<StatisticsCleanupService>();
