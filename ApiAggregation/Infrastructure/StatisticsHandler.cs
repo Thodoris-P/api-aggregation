@@ -20,13 +20,13 @@ public class StatisticsHandler : DelegatingHandler
         {
             var response = await base.SendAsync(request, cancellationToken);
             stopwatch.Stop();
-            _statisticsService.UpdateApiStatistics(requestUri, (int)stopwatch.ElapsedMilliseconds);
+            _statisticsService.UpdateApiStatistics(requestUri, stopwatch.ElapsedMilliseconds);
             return response;
         }
         catch (Exception e)
         {
             stopwatch.Stop();
-            _statisticsService.UpdateApiStatistics(requestUri, (int)stopwatch.ElapsedMilliseconds);
+            _statisticsService.UpdateApiStatistics(requestUri, stopwatch.ElapsedMilliseconds);
             Console.WriteLine(e);
             throw;
         }

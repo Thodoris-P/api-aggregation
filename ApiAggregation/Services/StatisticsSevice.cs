@@ -5,7 +5,7 @@ namespace ApiAggregation.Services;
 public interface IStatisticsSevice
 {
     Dictionary<string, Dictionary<string, ApiStatistics>> GetApiStatistics();
-    void UpdateApiStatistics(string apiName, int elapsedMilliseconds);
+    void UpdateApiStatistics(string apiName, long elapsedMilliseconds);
 }
 
 
@@ -17,9 +17,14 @@ public class ApiStatistics
     public int TotalRequests { get; set; }
 }
 
+// In a real world scenario, we would use a more sophisticated approach
+// because now we are storing data indefinitely which will eventually be bad for memory usage
+// We could use a sliding window or a fixed size buffer to limit the number of stored times,
+// but .NET doesn't provide such a structure out of the box
+// and implementing one would be out of scope for this assignment
 public class StatisticsSevice : IStatisticsSevice
 {
-    private readonly ConcurrentDictionary<string, List<long>> _requestTimes = new();
+    private readonly ConcurrentDictionary<string, ConcurrentBag<long>> _requestTimes = new();
     
     public Dictionary<string, Dictionary<string, ApiStatistics>> GetApiStatistics()
     {
@@ -32,15 +37,18 @@ public class StatisticsSevice : IStatisticsSevice
         
         foreach ((string? apiName, var times) in _requestTimes)
         {
-            if (times.Count <= 0) continue;
-
-            double averageTime = times.Average();
-            long minTime = times.Min();
-            long maxTime = times.Max();
+            if (times.IsEmpty) continue;
+            
+            // Utilize the snapshot pattern to avoid getting mixed results
+            long[] snapshot = times.ToArray();
+            
+            double averageTime = snapshot.Average();
+            long minTime = snapshot.Min();
+            long maxTime = snapshot.Max();
             
             var stats = new ApiStatistics
             {
-                TotalRequests = times.Count,
+                TotalRequests = snapshot.Length,
                 AverageResponseTime = averageTime,
                 MinResponseTime = minTime,
                 MaxResponseTime = maxTime
@@ -63,12 +71,11 @@ public class StatisticsSevice : IStatisticsSevice
         };
     }
 
-    public void UpdateApiStatistics(string apiName, int elapsedMilliseconds)
+    public void UpdateApiStatistics(string apiName, long elapsedMilliseconds)
     {
-        var times = _requestTimes.GetOrAdd(apiName, _ => []);
-        lock (times)
-        {
-            times.Add(elapsedMilliseconds);
-        }
+        // Store the request time in a thread-safe manner
+        // only store minimum information (elapsed time) to avoid complex computations and locking for long times
+        var bag = _requestTimes.GetOrAdd(apiName, _ => []);
+        bag.Add(elapsedMilliseconds);
     }
 }
