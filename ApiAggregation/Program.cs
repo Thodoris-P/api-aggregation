@@ -1,17 +1,49 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using ApiAggregation.Authentication;
 using ApiAggregation.Infrastructure;
 using ApiAggregation.Services;
 using ApiAggregation.Services.Abstractions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Polly;
 using Polly.Fallback;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure JWT Authentication
+var key = Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!);
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
+    {
+        // In production ensure HTTPS metadata is required.
+        options.RequireHttpsMetadata = false;
+        options.SaveToken = true;
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(key)
+        };
+    });
+
+builder.Services.AddSingleton<IAccountService, InMemoryAccountService>();
+
+
+builder.Services.AddAuthorization();
 
 // Configure Serilog from appsettings.json
 Log.Logger = new LoggerConfiguration()
@@ -136,6 +168,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
