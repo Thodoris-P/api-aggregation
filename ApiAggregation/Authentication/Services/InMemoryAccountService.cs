@@ -7,8 +7,6 @@ using ApiAggregation.Authentication.Contracts;
 using ApiAggregation.Authentication.Models;
 using ApiAggregation.Configuration;
 using ApiAggregation.Infrastructure.Abstractions;
-using ApiAggregation.Infrastructure.Providers;
-using ApiAggregation.Statistics;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -20,59 +18,39 @@ public class InMemoryAccountService(IDateTimeProvider dateTimeProvider, IOptions
     private readonly List<User> _users = [];
     private readonly JwtSettings _jwtSettings = jwtSettings.Value;
 
-    public AuthResponse Register(string username, string password)
+    public AuthResponse Register(AuthRequest request)
     {
-        if (_users.Any(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
+        if (_users.Any(u => u.Username.Equals(request.Username, StringComparison.OrdinalIgnoreCase)))
         {
-            return new AuthResponse
-            {
-                IsSuccessful = false,
-                Message = "User already exists",
-            };
+            return new AuthResponse(false, "User already exists", null, null);
         }
 
-        CreatePasswordHash(password, out byte[] passwordHash, out byte[] passwordSalt);
+        CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
         var user = new User
         {
             Id = Guid.NewGuid(),
-            Username = username,
+            Username = request.Username,
             PasswordHash = passwordHash,
             PasswordSalt = passwordSalt
         };
 
         _users.Add(user);
-
-        return new AuthResponse {
-            IsSuccessful = true,
-            Message = "User registered successfully"
-        };
+        return new AuthResponse(true, "User registered successfully", null, null);
     }
     
-    public AuthResponse Login(string username, string password)
+    public AuthResponse Login(AuthRequest request)
     {
-        var user = _users.FirstOrDefault(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase));
-        if (user == null || !VerifyPasswordHash(password, user.PasswordHash, user.PasswordSalt))
+        var user = _users.FirstOrDefault(u => u.Username.Equals(request.Username, StringComparison.OrdinalIgnoreCase));
+        if (user == null || !VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
         {
-            return new AuthResponse{
-                IsSuccessful = false,
-                Message = "Invalid credentials"
-                
-            };
+            return new AuthResponse(false, "Invalid credentials", null, null);
         }
         
         string? jwtToken = GenerateJwtToken(user);
         string refreshToken = GenerateRefreshToken();
-        user.RefreshToken = refreshToken;
-        int refreshExpiryInDays = _jwtSettings.RefreshTokenExpiryInDays;
-        user.RefreshTokenExpiryTime = dateTimeProvider.UtcNow.AddDays(refreshExpiryInDays);
-        return new AuthResponse
-        {
-            IsSuccessful = true,
-            Message = "Login successful",
-            Token = jwtToken,
-            RefreshToken = refreshToken,
-        };
+        UpdateUserRefreshToken(user, refreshToken);
+        return new AuthResponse(true, "Login successful", jwtToken, refreshToken);
     }
 
     public AuthResponse RefreshToken(string refreshToken)
@@ -80,28 +58,22 @@ public class InMemoryAccountService(IDateTimeProvider dateTimeProvider, IOptions
         var user = _users.FirstOrDefault(u => u.RefreshToken == refreshToken);
         if (user == null || user.RefreshTokenExpiryTime <= dateTimeProvider.UtcNow)
         {
-            return new AuthResponse
-            {
-                IsSuccessful = false,
-                Message = "Invalid or expired refresh token",
-            };
+            return new AuthResponse(false, "Invalid or expired refresh token", null, null);
         }
 
         string token = GenerateJwtToken(user);
         string newRefreshToken = GenerateRefreshToken();
+        UpdateUserRefreshToken(user, newRefreshToken);
+        return new AuthResponse(true, "Token refreshed successfully", token, newRefreshToken);
+    }
 
+    private void UpdateUserRefreshToken(User user, string newRefreshToken)
+    {
         user.RefreshToken = newRefreshToken;
         int refreshExpiryInDays = _jwtSettings.RefreshTokenExpiryInDays;
         user.RefreshTokenExpiryTime = dateTimeProvider.UtcNow.AddDays(refreshExpiryInDays);
-
-        return new AuthResponse {
-            IsSuccessful = true,
-            Message = "Token refreshed successfully",
-            Token = token,
-            RefreshToken = newRefreshToken
-        };
     }
-    
+
     private string GenerateJwtToken(User user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();

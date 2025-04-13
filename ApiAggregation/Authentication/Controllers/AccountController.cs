@@ -9,9 +9,9 @@ namespace ApiAggregation.Authentication.Controllers;
 public class AccountController(IAccountService accountService) : ControllerBase
 {
     [HttpPost("register")]
-    public IActionResult Register([FromBody] UserLoginRequest user)
+    public IActionResult Register([FromBody] AuthRequest request)
     {
-        var authResponse = accountService.Register(user.Username, user.Password);
+        var authResponse = accountService.Register(request);
         if (authResponse.IsSuccessful)
         {
             return Ok(new { message = authResponse.Message });
@@ -20,9 +20,9 @@ public class AccountController(IAccountService accountService) : ControllerBase
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] UserLoginRequest user)
+    public IActionResult Login([FromBody] AuthRequest request)
     {
-        var authResponse = accountService.Login(user.Username, user.Password);
+        var authResponse = accountService.Login(request);
         if (authResponse.IsSuccessful)
         {
             return Ok(authResponse);

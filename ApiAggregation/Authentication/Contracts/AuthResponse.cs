@@ -1,9 +1,3 @@
 namespace ApiAggregation.Authentication.Contracts;
 
-public class AuthResponse
-{
-    public bool IsSuccessful { get; set; }
-    public string Message { get; set; }
-    public string? Token { get; set; }
-    public string? RefreshToken { get; set; }
-}
+public record AuthResponse(bool IsSuccessful, string Message, string? Token, string? RefreshToken);

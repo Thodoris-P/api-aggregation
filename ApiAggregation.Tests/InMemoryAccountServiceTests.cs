@@ -1,4 +1,5 @@
 using ApiAggregation.Authentication;
+using ApiAggregation.Authentication.Contracts;
 using ApiAggregation.Authentication.Models;
 using ApiAggregation.Authentication.Services;
 using ApiAggregation.Configuration;
@@ -18,6 +19,7 @@ public class InMemoryAccountServiceTests : IDisposable
     private readonly string _username;
     private readonly string _password;
     private readonly InMemoryAccountService _accountService;
+    private readonly AuthRequest _defaultUser;
 
 
     public InMemoryAccountServiceTests()
@@ -38,6 +40,7 @@ public class InMemoryAccountServiceTests : IDisposable
         _faker = new Faker();
         _username = _faker.Internet.UserName();
         _password = _faker.Internet.Password();
+        _defaultUser = new AuthRequest(_username, _password);
     }
     
     [Fact]
@@ -46,7 +49,7 @@ public class InMemoryAccountServiceTests : IDisposable
         // Arrange
 
         // Act
-        var response = _accountService.Register(_username, _password);
+        var response = _accountService.Register(_defaultUser);
 
         // Assert
         response.IsSuccessful.ShouldBeTrue();
@@ -57,10 +60,10 @@ public class InMemoryAccountServiceTests : IDisposable
     public void Register_SameUser_ShouldFail()
     {
         // Arrange
-        _ = _accountService.Register(_username, _password);
+        _ = _accountService.Register(_defaultUser);
 
         // Act
-        var response = _accountService.Register(_username, _password);
+        var response = _accountService.Register(_defaultUser);
 
         // Assert
         response.IsSuccessful.ShouldBeFalse();
@@ -73,7 +76,7 @@ public class InMemoryAccountServiceTests : IDisposable
         // Arrange
         
         // Act
-        var response = _accountService.Login(_username, _password);
+        var response = _accountService.Login(_defaultUser);
 
         // Assert
         response.IsSuccessful.ShouldBeFalse();
@@ -85,10 +88,11 @@ public class InMemoryAccountServiceTests : IDisposable
     {
         // Arrange
         string wrongPassword = _faker.Internet.Password();
-        _accountService.Register(_username, _password);
+        _accountService.Register(_defaultUser);
+        var invalidUser = new AuthRequest(_username, wrongPassword);
 
         // Act
-        var response = _accountService.Login(_username, wrongPassword);
+        var response = _accountService.Login(invalidUser);
 
         // Assert
         response.IsSuccessful.ShouldBeFalse();
@@ -99,10 +103,10 @@ public class InMemoryAccountServiceTests : IDisposable
     public void Login_ValidCredentials_ShouldSucceed()
     {
         // Arrange
-        _ = _accountService.Register(_username, _password);
+        _ = _accountService.Register(_defaultUser);
 
         // Act
-        var loginResponse = _accountService.Login(_username, _password);
+        var loginResponse = _accountService.Login(_defaultUser);
 
         // Assert
         loginResponse.IsSuccessful.ShouldBeTrue();
@@ -116,8 +120,8 @@ public class InMemoryAccountServiceTests : IDisposable
     {
         // Arrange
         // Register and login to generate tokens
-        _accountService.Register(_username, _password);
-        var loginResponse = _accountService.Login(_username, _password);
+        _accountService.Register(_defaultUser);
+        var loginResponse = _accountService.Login(_defaultUser);
         string refreshToken = loginResponse.RefreshToken;
 
         // Act
@@ -146,8 +150,8 @@ public class InMemoryAccountServiceTests : IDisposable
     public void RefreshToken_ExpiredToken_ShouldFail()
     {
         // Arrange
-        _accountService.Register(_username, _password);
-        var loginResponse = _accountService.Login(_username, _password);
+        _accountService.Register(_defaultUser);
+        var loginResponse = _accountService.Login(_defaultUser);
         // Simulate token expiry by advancing the UtcNow beyond the refresh token expiry
         _dateTimeProvider.Advance(TimeSpan.FromDays(_jwtSettings.RefreshTokenExpiryInDays + 1));
 

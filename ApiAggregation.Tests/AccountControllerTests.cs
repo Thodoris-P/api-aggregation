@@ -12,14 +12,15 @@ public class AccountControllerTests
 {
     private readonly Mock<IAccountService> _mockAccountService;
     private readonly AccountController _controller;
-    private readonly UserLoginRequest _defaultUser;
+    private readonly AuthRequest _defaultUser;
     private readonly RefreshTokenRequest _defaultRefreshRequest;
+    
 
     public AccountControllerTests()
     {
         _mockAccountService = new Mock<IAccountService>();
         _controller = new AccountController(_mockAccountService.Object);
-        _defaultUser = new UserLoginRequest("testuser", "password");
+        _defaultUser = new AuthRequest("testuser", "password");
         _defaultRefreshRequest = new RefreshTokenRequest("sample-refresh-token");
     }
 
@@ -27,14 +28,10 @@ public class AccountControllerTests
     public void Register_ReturnsOk_WhenRegistrationIsSuccessful()
     {
         // Arrange
-        var authResponse = new AuthResponse
-        {
-            IsSuccessful = true,
-            Message = "User registered successfully."
-        };
+        var authResponse = new AuthResponse(true, "User registered successfully.", null, null);
 
         _mockAccountService
-            .Setup(s => s.Register(_defaultUser.Username, _defaultUser.Password))
+            .Setup(s => s.Register(_defaultUser))
             .Returns(authResponse);
 
         // Act
@@ -42,21 +39,17 @@ public class AccountControllerTests
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.Contains("User registered successfully.", okResult.Value.ToString());
+        Assert.Contains(authResponse.Message, okResult.Value.ToString());
     }
 
     [Fact]
     public void Register_ReturnsBadRequest_WhenRegistrationFails()
     {
         // Arrange
-        var authResponse = new AuthResponse
-        {
-            IsSuccessful = false,
-            Message = "Registration failed."
-        };
+        var authResponse = new AuthResponse(false, "Registration failed.", null, null);
 
         _mockAccountService
-            .Setup(s => s.Register(_defaultUser.Username, _defaultUser.Password))
+            .Setup(s => s.Register(_defaultUser))
             .Returns(authResponse);
 
         // Act
@@ -71,14 +64,10 @@ public class AccountControllerTests
     public void Login_ReturnsOk_WhenLoginIsSuccessful()
     {
         // Arrange
-        var authResponse = new AuthResponse
-        {
-            IsSuccessful = true,
-            Message = "Login successful."
-        };
+        var authResponse = new AuthResponse(true, "Login successful.", null, null);
 
         _mockAccountService
-            .Setup(s => s.Login(_defaultUser.Username, _defaultUser.Password))
+            .Setup(s => s.Login(_defaultUser))
             .Returns(authResponse);
 
         // Act
@@ -95,14 +84,10 @@ public class AccountControllerTests
     public void Login_ReturnsBadRequest_WhenLoginFails()
     {
         // Arrange
-        var authResponse = new AuthResponse
-        {
-            IsSuccessful = false,
-            Message = "Invalid credentials."
-        };
+        var authResponse = new AuthResponse(false, "Invalid credentials.", null, null);
 
         _mockAccountService
-            .Setup(s => s.Login(_defaultUser.Username, _defaultUser.Password))
+            .Setup(s => s.Login(_defaultUser))
             .Returns(authResponse);
 
         // Act
@@ -117,11 +102,7 @@ public class AccountControllerTests
     public void Refresh_ReturnsOk_WhenRefreshTokenIsSuccessful()
     {
         // Arrange
-        var authResponse = new AuthResponse
-        {
-            IsSuccessful = true,
-            Message = "Token refreshed."
-        };
+        var authResponse = new AuthResponse(true, "Token refreshed.", null, null);
 
         _mockAccountService
             .Setup(s => s.RefreshToken(_defaultRefreshRequest.RefreshToken))
@@ -141,11 +122,7 @@ public class AccountControllerTests
     public void Refresh_ReturnsBadRequest_WhenRefreshTokenFails()
     {
         // Arrange
-        var authResponse = new AuthResponse
-        {
-            IsSuccessful = false,
-            Message = "Invalid refresh token."
-        };
+        var authResponse = new AuthResponse(false, "Invalid refresh token.", null, null);
 
         _mockAccountService
             .Setup(s => s.RefreshToken(_defaultRefreshRequest.RefreshToken))
