@@ -1,6 +1,61 @@
 @ApiAggregation_HostAddress = http://localhost:5034
+@username = exampleUser
+@password = StrongPassword123
 
-GET {{ApiAggregation_HostAddress}}/weatherforecast/
+### POST User Registration
+POST {{ApiAggregation_HostAddress}}/api/authentication/register
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+###
+
+### POST User Login
+POST {{ApiAggregation_HostAddress}}/api/authentication/login
+Content-Type: application/json
+
+{
+  "username": "{{username}}",
+  "password": "{{password}}"
+}
+
+> {% 
+    client.global.set("auth_token", response.body.token);
+    client.global.set("refreshToken", response.body.refreshToken);
+%}
+
+###
+
+### POST API Aggregation
+POST {{ApiAggregation_HostAddress}}/api/aggregation
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "keyword": "us",
+  "city": "London",
+  "country": "uk"
+}
+
+###
+
+### GET API Statistics
+GET {{ApiAggregation_HostAddress}}/api/statistics
+Authorization: Bearer {{auth_token}}
 Accept: application/json
+
+###
+
+
+### POST Token Refresh
+POST {{ApiAggregation_HostAddress}}/api/authentication/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
 
 ###
