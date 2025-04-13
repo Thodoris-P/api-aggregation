@@ -1,4 +1,5 @@
 using ApiAggregation.Statistics;
+using Bogus;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 using Shouldly;
@@ -32,18 +33,21 @@ public class StatisticsServiceTests
     private const double DefaultTolerance = 0.001;
     private const double FastUpperLimit = 100;
     private const double MediumUpperLimit = 200;
-
+    private readonly Faker _faker;
+    private readonly StatisticsThresholds _thresholds;
+    
     public StatisticsServiceTests()
     {
         var fixedTime = new DateTime(2025, 01, 01, 12, 00, 00, DateTimeKind.Utc);
         _dateTimeProvider = new FakeDateTimeProvider(fixedTime);
-        var thresholds = new StatisticsThresholds
+        _thresholds = new StatisticsThresholds
         {
             FastUpperLimit = FastUpperLimit,
             MediumUpperLimit = MediumUpperLimit,
         };
-        var options = Options.Create(thresholds);
+        var options = Options.Create(_thresholds);
         _statisticsService = new StatisticsService(new FakeHybridCache(), _dateTimeProvider, options);
+        _faker = new Faker();
     }
         
     
@@ -72,61 +76,62 @@ public class StatisticsServiceTests
     public void UpdateApiStatistics_ShouldAddRecord()
     {
         // Arrange
+        int responseTime = _faker.Random.Int(1, 1000);
 
         // Act
-        _statisticsService.UpdateApiStatistics(ApiName, 120);
+        _statisticsService.UpdateApiStatistics(ApiName, responseTime);
         // Get performance records within the last minute.
         var records = _statisticsService.GetApiPerformanceRecords(ApiName, _dateTimeProvider.UtcNow.AddMinutes(-1));
 
         // Assert
         records.Count.ShouldBe(1);
-        records[0].ResponseTimeInMilliseconds.ShouldBe(120);
+        records[0].ResponseTimeInMilliseconds.ShouldBe(responseTime);
     }
 
     [Fact]
     public void GetAllApiNames_ReturnsAllTrackedApiNames()
     {
         // Arrange
-        _statisticsService.UpdateApiStatistics("Api1", 10);
-        _statisticsService.UpdateApiStatistics("Api2", 20);
+        int responseTime = _faker.Random.Int(1, 1000);
+        _statisticsService.UpdateApiStatistics(ApiName, responseTime);
+        _statisticsService.UpdateApiStatistics(FastApi, responseTime);
 
         // Act
         var apiNames = _statisticsService.GetAllApiNames().ToList();
 
         // Assert
-        apiNames.ShouldContain("Api1");
-        apiNames.ShouldContain("Api2");
+        apiNames.ShouldContain(ApiName);
+        apiNames.ShouldContain(FastApi);
     }
 
     [Fact]
     public void GetApiPerformanceRecords_FiltersRecordsBasedOnTimestamp()
     {
         // Arrange
-        _statisticsService.UpdateApiStatistics(ApiName, 150);
+        _statisticsService.UpdateApiStatistics(ApiName, MinElapsedTime);
         _dateTimeProvider.Advance(TimeSpan.FromMinutes(10));
-        _statisticsService.UpdateApiStatistics(ApiName, 200);
+        _statisticsService.UpdateApiStatistics(ApiName, MaxElapsedTime);
 
         // Act: get records since 5 minutes ago
         var recentRecords = _statisticsService.GetApiPerformanceRecords(ApiName, _dateTimeProvider.UtcNow.Subtract(TimeSpan.FromMinutes(5)));
 
         // Assert: Only the recently added record should be returned.
         recentRecords.Count.ShouldBe(1);
-        recentRecords[0].ResponseTimeInMilliseconds.ShouldBe(200);
+        recentRecords[0].ResponseTimeInMilliseconds.ShouldBe(MaxElapsedTime);
     }
 
     [Fact]
     public void CleanupOldEntries_RemovesRecordsOlderThanRetentionPeriod()
     {
         // Arrange
-        _statisticsService.UpdateApiStatistics(ApiName, 100);
+        _statisticsService.UpdateApiStatistics(ApiName, MinElapsedTime);
         _dateTimeProvider.Advance(TimeSpan.FromDays(2));
 
         // Act: Cleanup entries older than 1 day.
         _statisticsService.CleanupOldEntries(TimeSpan.FromDays(1));
 
-        var recordsAfterCleanup = _statisticsService.GetApiPerformanceRecords(ApiName, _dateTimeProvider.UtcNow.Subtract(TimeSpan.FromDays(3)));
-
         // Assert: There should be no records remaining.
+        var recordsAfterCleanup = _statisticsService.GetApiPerformanceRecords(ApiName, _dateTimeProvider.UtcNow.Subtract(TimeSpan.FromDays(3)));
         recordsAfterCleanup.Count.ShouldBe(0);
     }
 
@@ -135,17 +140,15 @@ public class StatisticsServiceTests
     {
         //Arrange
         // For Fast (< 100ms)
-        _statisticsService.UpdateApiStatistics(FastApi, 80);
-        _statisticsService.UpdateApiStatistics(FastApi, 90);
-
+        _statisticsService.UpdateApiStatistics(FastApi, _faker.Random.Long(1, (int)_thresholds.FastUpperLimit - 1));
+        _statisticsService.UpdateApiStatistics(FastApi, _faker.Random.Long(1, (int)_thresholds.FastUpperLimit - 1));
         // For Medium (>=100ms and <200ms)
-        _statisticsService.UpdateApiStatistics(MediumApi, 120);
-        _statisticsService.UpdateApiStatistics(MediumApi, 180);
-
+        _statisticsService.UpdateApiStatistics(MediumApi, _faker.Random.Long((int)_thresholds.FastUpperLimit, (int)_thresholds.MediumUpperLimit - 1));
+        _statisticsService.UpdateApiStatistics(MediumApi, _faker.Random.Long((int)_thresholds.FastUpperLimit, (int)_thresholds.MediumUpperLimit - 1));
         // For Slow (>=200ms)
-        _statisticsService.UpdateApiStatistics(SlowApi, 250);
-        _statisticsService.UpdateApiStatistics(SlowApi, 300);
-
+        _statisticsService.UpdateApiStatistics(SlowApi, _faker.Random.Long((int)_thresholds.MediumUpperLimit, int.MaxValue));
+        _statisticsService.UpdateApiStatistics(SlowApi, _faker.Random.Long((int)_thresholds.MediumUpperLimit, int.MaxValue));
+        
         // Act
         var stats = await _statisticsService.GetApiStatistics();
 
