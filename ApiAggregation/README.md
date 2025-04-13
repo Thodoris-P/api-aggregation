@@ -184,6 +184,7 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
 
 ## Final Notes & Observations & Feature Improvements:
 - I tried to tackle each and every requirement in the task description, and I think that finally backfired.
+- I should have put way more thought in the core requirement of aggregating the data from the APIs. Instead, I chose to implement the core architecture after the initial design and handle the filtering later (never happened).
 - Given more time I would have made the code more testable and added more unit tests (test coverage is low).
   - For example, some classes have more than one responsibility, some classes use the stopwotch directly, etc.
 - Apply better, more robust error handling and catch all possible exceptions.
