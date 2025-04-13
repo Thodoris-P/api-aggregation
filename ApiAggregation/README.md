@@ -148,7 +148,8 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
 1. Clone the repository.
 2. Open the solution in Visual Studio or your preferred IDE.
 3. Restore the NuGet packages.
-4. Make sure to API keys and JWT secret in the appsettings.
+4. Make sure to API keys and JWT secret in the appsettings.json file.
+   - I will provide those via email. In a real world scenario, you would use a secret manager (vaults or secure stores) or environment variables (Azure) to store sensitive information.
 5. Run the application 
 
    5.1. using `dotnet run` or through your IDE.
@@ -185,11 +186,13 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
 - I tried to tackle each and every requirement in the task description, and I think that finally backfired.
 - Given more time I would have made the code more testable and added more unit tests (test coverage is low).
   - For example, some classes have more than one responsibility, some classes use the stopwotch directly, etc.
+- Apply better, more robust error handling and catch all possible exceptions.
 - I would have also logged more consistently.
 - I chose Microsoft HybridCache for caching, but it was a bit difficult to set up in tests and I used that github issue (https://github.com/dotnet/extensions/issues/5763)
 - It did not occur to me to implement change password or password reset. (Yet again it is an in-memory store).
 - I would have liked to provide a proper swagger with all the endpoints, contracts, and examples.
 - I also did not have the time to sort out the mess in Program.cs and the duplicate code for setting up resilience for every httpclient
 - I'd like to add more meaningful filters so that a better response can be provided.
+- Solve all the warnings
 - Write a better README.md (going more into implementation details and why things are the way they are).
 - Many more
