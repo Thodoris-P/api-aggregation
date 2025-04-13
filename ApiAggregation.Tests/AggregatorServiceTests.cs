@@ -1,11 +1,10 @@
-using ApiAggregation.Aggregation;
 using ApiAggregation.Aggregation.Models;
 using ApiAggregation.Aggregation.Services;
-using ApiAggregation.ExternalApis;
 using ApiAggregation.ExternalApis.Abstractions;
 using ApiAggregation.ExternalApis.Models;
 using Bogus;
 using Moq;
+using Shouldly;
 
 namespace ApiAggregation.UnitTests;
 
@@ -14,39 +13,39 @@ public class AggregatorServiceTests
 {
     private readonly Faker _faker;
     private readonly CancellationToken _cancellationToken = CancellationToken.None;
-
+    private readonly IExternalApiFilter _filterOptionsMock;
 
     public AggregatorServiceTests()
     {
         _faker = new Faker();
+        var mockFilter = new Mock<IExternalApiFilter>();
+        _filterOptionsMock = mockFilter.Object;
     }
 
     [Fact]
     public async Task GetAggregatedDataAsync_ReturnsAggregatedData_WhenApiClientsReturnData()
     {
         // Arrange
-        var filterOptionsMock = new Mock<IExternalApiFilter>();
-
         // Create two fake responses with Bogus
-        var response1 = new ApiResponse
+        var fakeResponse1 = new ApiResponse
         {
             ApiName = _faker.Company.CompanyName(),
-            Content = _faker.Lorem.Sentence()
+            Content = """{ "test": "test" }"""
         };
-        var response2 = new ApiResponse
+        var fakeResponse2 = new ApiResponse
         {
             ApiName = _faker.Company.CompanyName(),
-            Content = _faker.Lorem.Sentence()
+            Content = """{ "test": "test" }"""
         };
 
         // Create mocks for external API clients using Moq
         var apiClientMock1 = new Mock<IExternalApiClient>();
         var apiClientMock2 = new Mock<IExternalApiClient>();
 
-        apiClientMock1.Setup(client => client.GetDataAsync(filterOptionsMock.Object, _cancellationToken))
-                      .ReturnsAsync(response1);
-        apiClientMock2.Setup(client => client.GetDataAsync(filterOptionsMock.Object, _cancellationToken))
-                      .ReturnsAsync(response2);
+        apiClientMock1.Setup(client => client.GetDataAsync(_filterOptionsMock, _cancellationToken))
+                      .ReturnsAsync(fakeResponse1);
+        apiClientMock2.Setup(client => client.GetDataAsync(_filterOptionsMock, _cancellationToken))
+                      .ReturnsAsync(fakeResponse2);
 
         var clients = new List<IExternalApiClient>
         {
@@ -57,25 +56,25 @@ public class AggregatorServiceTests
         var aggregatorService = new AggregatorService(clients);
 
         // Act
-        var result = await aggregatorService.GetAggregatedDataAsync(filterOptionsMock.Object);
+        var result = await aggregatorService.GetAggregatedDataAsync(_filterOptionsMock);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.NotNull(result.ApiResponses);
-        Assert.Equal(2, result.ApiResponses.Count);
-        Assert.Equal(response1.Content, result.ApiResponses[response1.ApiName]);
-        Assert.Equal(response2.Content, result.ApiResponses[response2.ApiName]);
+        result.ShouldNotBeNull();
+        result.ApiResponses.ShouldNotBeNull();
+        result.ApiResponses.Count.ShouldBe(2);
+        string actualResponse1 = result.ApiResponses[fakeResponse1.ApiName].ToString();
+        actualResponse1.ShouldBe(fakeResponse1.Content);
+        string actualResponse2 = result.ApiResponses[fakeResponse1.ApiName].ToString();
+        actualResponse2.ShouldBe(fakeResponse2.Content);
     }
 
     [Fact]
     public async Task GetAggregatedDataAsync_ThrowsException_WhenAnyApiClientThrows()
     {
         // Arrange
-        var filterOptionsMock = new Mock<IExternalApiFilter>();
-
         // Set up a mock API client to throw an exception
         var failingClientMock = new Mock<IExternalApiClient>();
-        failingClientMock.Setup(client => client.GetDataAsync(filterOptionsMock.Object, _cancellationToken))
+        failingClientMock.Setup(client => client.GetDataAsync(_filterOptionsMock, _cancellationToken))
                          .ThrowsAsync(new Exception("API failure"));
 
         var clients = new List<IExternalApiClient>
@@ -87,22 +86,18 @@ public class AggregatorServiceTests
 
         // Act & Assert: verify that the exception is propagated
         await Assert.ThrowsAsync<Exception>(() =>
-            aggregatorService.GetAggregatedDataAsync(filterOptionsMock.Object));
+            aggregatorService.GetAggregatedDataAsync(_filterOptionsMock));
     }
 
     [Fact]
     public async Task GetAggregatedDataAsync_ReturnsEmptyAggregatedData_WhenNoApiClients()
     {
         // Arrange
-        var filterOptionsMock = new Mock<IExternalApiFilter>();
-
         // Use an empty list of API clients
-        var clients = new List<IExternalApiClient>();
-
-        var aggregatorService = new AggregatorService(clients);
+        var aggregatorService = new AggregatorService(new List<IExternalApiClient>());
 
         // Act
-        AggregatedData result = await aggregatorService.GetAggregatedDataAsync(filterOptionsMock.Object);
+        var result = await aggregatorService.GetAggregatedDataAsync(_filterOptionsMock);
 
         // Assert: result should have an empty dictionary
         Assert.NotNull(result);

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ApiAggregation.Aggregation.Abstractions;
 using ApiAggregation.Aggregation.Models;
 using ApiAggregation.ExternalApis.Abstractions;
@@ -12,7 +13,10 @@ public class AggregatorService(IEnumerable<IExternalApiClient> apiClients) : IAg
         var responses = await Task.WhenAll(tasks);
         var aggregatedData = new AggregatedData
         {
-            ApiResponses = responses.ToDictionary(x => x.ApiName, x => x.Content),
+            ApiResponses = responses.ToDictionary(
+                x => x.ApiName, 
+                x => JsonSerializer.Deserialize<JsonElement>(x.Content)
+            ),
         };
         return aggregatedData;
     }
