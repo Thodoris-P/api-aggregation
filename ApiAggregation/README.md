@@ -22,7 +22,7 @@ For that reason, I decided to create a simple API that will return the data from
 I was thinking of a GET method to follow the RESTful architecture (since we get data with filters it should be GET),
 but since we need to provide enough filters to integrate with all sorts of APIs, I decided to go with POST.
 - **Description**: Aggregates data from multiple APIs based on the provided filters.
-- **Request Body**: 
+- **Request Body Example**: 
 ```json
 {
   "keyword": "us",
@@ -40,6 +40,90 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
     }
 }
 ```
+
+### GET /api/statistics
+- **Description**: Provides the statistics of the API performance grouped in performance buckets.
+- **Response Example**:
+```json
+{
+  "Fast": {},
+  "Medium": {},
+  "Slow": {
+    "newsapi.org": {
+      "averageResponseTime": 338,
+      "minResponseTime": 338,
+      "maxResponseTime": 338,
+      "totalRequests": 1
+    },
+    "MyApiAggregator": {
+      "averageResponseTime": 1270,
+      "minResponseTime": 1270,
+      "maxResponseTime": 1270,
+      "totalRequests": 1
+    }
+  }
+}
+```
+
+### POST /api/authentication/register
+- **Description**: Registers a new user.
+- **Request Body Example**:
+```json
+{
+  "username": "exampleUser",
+  "password": "StrongPassword123",
+}
+```
+- **Response**:
+```json
+{
+    "apiResponses": {
+        "OpenWeatherMap": {  },
+        "WeatherAPI": {  },
+        "Spotify": {  }
+    }
+}
+```
+
+
+### POST /api/authentication/login
+- **Description**: Registers a new user.
+- **Request Body Example**:
+```json
+{
+  "username": "exampleUser",
+  "password": "StrongPassword123",
+}
+```
+- **Response**:
+```json
+{
+  "isSuccessful": true,
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiI2ODVkYThiNi05NDVmLTQ2ZDctYjYyNi04NTNiZDBiMzg0MWIiLCJ1bmlxdWVfbmFtZSI6InRlbyIsIm5iZiI6MTc0NDU2NDc1MSwiZXhwIjoxNzQ0NTY1NjUxLCJpYXQiOjE3NDQ1NjQ3NTEsImlzcyI6Ik15QXBpIiwiYXVkIjoiTXlBcGlVc2VycyJ9.IzcE05tKvOiqS7mFJ3_N3v5rMjrfW6A3G2eqtAP4nHI",
+  "refreshToken": "Gqv2UukQlJi4zLCuqE4BnHCTpyKOWkX6zXm4VNo0wq4="
+}
+```
+
+### POST /api/authentication/refresh
+- **Description**: Registers a new user.
+- **Request Body Example**:
+```json
+{
+  "refreshToken": "xhaHbryinPtiz1epkaocOj5XnAlQprKFHeLUHW6La+o="
+}
+```
+- **Response**:
+```json
+{
+  "isSuccessful": true,
+  "message": "Token refreshed successfully",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiI2ODVkYThiNi05NDVmLTQ2ZDctYjYyNi04NTNiZDBiMzg0MWIiLCJ1bmlxdWVfbmFtZSI6InRlbyIsIm5iZiI6MTc0NDU2NDc1MSwiZXhwIjoxNzQ0NTY1NjUxLCJpYXQiOjE3NDQ1NjQ3NTEsImlzcyI6Ik15QXBpIiwiYXVkIjoiTXlBcGlVc2VycyJ9.IzcE05tKvOiqS7mFJ3_N3v5rMjrfW6A3G2eqtAP4nHI",
+  "refreshToken": "Gqv2UukQlJi4zLCuqE4BnHCTpyKOWkX6zXm4VNo0wq4="
+}
+```
+
+
 
 ## Implementation Specifics
 - Used Microsoft.Resilience for implementing circuit breaker, retry policies, fallback mechanisms (for external api failures)
@@ -59,6 +143,9 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
     - That was done because in this scope, the statistics are stored in memory, and we need to clean them up after a while.
     - I wanted to use a sliding window or circular buffer, but the bcl does not provide that functionality, so I went with the concurrent Queue.
 - Use a JWT bearer authentication scheme, with an AccountsController to handle user registration and login by using a custom in-memory AccountService.
+
+## Known Bugs:
+- Statistics endpoint returns cached Empty Response.
 
 ## Final Notes & Observations:
 - I tried to tackle each and every requirement in the task description, and I think that finally backfired.
