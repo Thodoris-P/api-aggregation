@@ -2,6 +2,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using ApiAggregation.Statistics;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 namespace ApiAggregation.Authentication;
@@ -24,11 +26,13 @@ public class AuthResponse
 public class InMemoryAccountService : IAccountService
 {
     private readonly List<User> _users = [];
-    private readonly IConfiguration _configuration;
+    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly JwtSettings _jwtSettings;
     
-    public InMemoryAccountService(IConfiguration configuration)
+    public InMemoryAccountService(IDateTimeProvider dateTimeProvider, IOptions<JwtSettings> jwtSettings)
     {
-        _configuration = configuration;
+        _dateTimeProvider = dateTimeProvider;
+        _jwtSettings = jwtSettings.Value;
     }
     
     public AuthResponse Register(string username, string password)
@@ -75,8 +79,8 @@ public class InMemoryAccountService : IAccountService
         string? jwtToken = GenerateJwtToken(user);
         string refreshToken = GenerateRefreshToken();
         user.RefreshToken = refreshToken;
-        int refreshExpiryInDays = int.Parse(_configuration["Jwt:RefreshTokenExpiryInDays"]!);
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshExpiryInDays);
+        int refreshExpiryInDays = _jwtSettings.RefreshTokenExpiryInDays;
+        user.RefreshTokenExpiryTime = _dateTimeProvider.UtcNow.AddDays(refreshExpiryInDays);
         return new AuthResponse
         {
             IsSuccessful = true,
@@ -89,7 +93,7 @@ public class InMemoryAccountService : IAccountService
     public AuthResponse RefreshToken(string refreshToken)
     {
         var user = _users.FirstOrDefault(u => u.RefreshToken == refreshToken);
-        if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+        if (user == null || user.RefreshTokenExpiryTime <= _dateTimeProvider.UtcNow)
         {
             return new AuthResponse
             {
@@ -102,8 +106,8 @@ public class InMemoryAccountService : IAccountService
         string newRefreshToken = GenerateRefreshToken();
 
         user.RefreshToken = newRefreshToken;
-        int refreshExpiryInDays = int.Parse(_configuration["Jwt:RefreshTokenExpiryInDays"]!);
-        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(refreshExpiryInDays);
+        int refreshExpiryInDays = _jwtSettings.RefreshTokenExpiryInDays;
+        user.RefreshTokenExpiryTime = _dateTimeProvider.UtcNow.AddDays(refreshExpiryInDays);
 
         return new AuthResponse {
             IsSuccessful = true,
@@ -116,19 +120,18 @@ public class InMemoryAccountService : IAccountService
     private string GenerateJwtToken(User user)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
-        int expiryInMinutes = int.Parse(_configuration["Jwt:ExpiryInMinutes"]!);
+        int expiryInMinutes = _jwtSettings.ExpiryInMinutes;
+        byte[] key = Encoding.UTF8.GetBytes(_jwtSettings.Key);
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
-            Subject = new ClaimsIdentity(new[]
-            {
+            Subject = new ClaimsIdentity([
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username)
-            }),
-            Expires = DateTime.UtcNow.AddMinutes(expiryInMinutes),
-            Issuer = _configuration["Jwt:Issuer"],
-            Audience = _configuration["Jwt:Audience"],
+            ]),
+            Expires = _dateTimeProvider.UtcNow.AddMinutes(expiryInMinutes),
+            Issuer = _jwtSettings.Issuer,
+            Audience = _jwtSettings.Audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
 
@@ -157,6 +160,20 @@ public class InMemoryAccountService : IAccountService
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
     }
+    
+    public void Reset()
+    {
+        _users.Clear();
+    }
+}
+
+public class JwtSettings
+{
+    public string Key { get; set; } = null!;
+    public int ExpiryInMinutes { get; set; }
+    public int RefreshTokenExpiryInDays { get; set; }
+    public string Issuer { get; set; } = null!;
+    public string Audience { get; set; } = null!;
 }
 
 public class User

@@ -40,6 +40,7 @@ builder.Services.AddAuthentication(options =>
         };
     });
 
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddSingleton<IAccountService, InMemoryAccountService>();
 
 

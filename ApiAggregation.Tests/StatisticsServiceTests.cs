@@ -17,28 +17,6 @@ internal sealed class FakeHybridCache : HybridCache
         CancellationToken cancellationToken = default) => default;
 }
 
-public class FakeDateTimeProvider : IDateTimeProvider
-{
-    public DateTime UtcNow { get; private set; }
-    private readonly DateTime _initialTime;
-
-    public FakeDateTimeProvider(DateTime initialTime)
-    {
-        UtcNow = initialTime;
-        _initialTime = initialTime;
-    }
-    
-    public void Advance(TimeSpan timeSpan)
-    {
-        UtcNow = UtcNow.Add(timeSpan);
-    }
-    
-    public void ResetTime(DateTime newTime)
-    {
-        UtcNow = _initialTime;
-    }
-}
-
 public class StatisticsServiceTests
 {
     private readonly StatisticsService _statisticsService;
@@ -50,7 +28,7 @@ public class StatisticsServiceTests
     private const long MinElapsedTime = 50;
     private const long MidElapsedTime = 70;
     private const long MaxElapsedTime = 90;
-    private const double AverageElapsedTime = (MinElapsedTime + MaxElapsedTime + MidElapsedTime) / 3;
+    private const double AverageElapsedTime = ((double)MinElapsedTime + MaxElapsedTime + MidElapsedTime) / 3;
     private const double DefaultTolerance = 0.001;
     private const double FastUpperLimit = 100;
     private const double MediumUpperLimit = 200;
