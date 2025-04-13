@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using ApiAggregation.Configuration;
 using ApiAggregation.ExternalApis.Abstractions;
 using ApiAggregation.ExternalApis.Models;
 using Microsoft.Extensions.Caching.Hybrid;

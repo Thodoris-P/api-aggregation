@@ -1,5 +1,5 @@
 using ApiAggregation.Authentication.Abstractions;
-using ApiAggregation.Authentication.DTOs;
+using ApiAggregation.Authentication.Contracts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiAggregation.Authentication.Controllers;

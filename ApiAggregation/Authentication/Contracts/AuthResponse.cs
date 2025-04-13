@@ -1,4 +1,4 @@
-namespace ApiAggregation.Authentication.DTOs;
+namespace ApiAggregation.Authentication.Contracts;
 
 public class AuthResponse
 {

@@ -1,4 +1,4 @@
-namespace ApiAggregation.Authentication.Models;
+namespace ApiAggregation.Configuration;
 
 public class JwtSettings
 {

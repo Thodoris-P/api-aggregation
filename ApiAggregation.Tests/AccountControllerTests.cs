@@ -1,7 +1,7 @@
 ﻿using ApiAggregation.Authentication;
 using ApiAggregation.Authentication.Abstractions;
+using ApiAggregation.Authentication.Contracts;
 using ApiAggregation.Authentication.Controllers;
-using ApiAggregation.Authentication.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Shouldly;

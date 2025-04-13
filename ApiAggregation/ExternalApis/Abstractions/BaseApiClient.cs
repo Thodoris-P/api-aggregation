@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ApiAggregation.Configuration;
 using ApiAggregation.ExternalApis.Models;
 using Microsoft.Extensions.Options;
 

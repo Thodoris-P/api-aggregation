@@ -1,4 +1,5 @@
 using System.Net.Http.Headers;
+using ApiAggregation.Configuration;
 using ApiAggregation.ExternalApis.Abstractions;
 using ApiAggregation.ExternalApis.Models;
 using ApiAggregation.ExternalApis.Services;

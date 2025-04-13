@@ -1,3 +1,4 @@
+using ApiAggregation.Configuration;
 using ApiAggregation.Statistics;
 using ApiAggregation.Statistics.Models;
 using ApiAggregation.Statistics.Services;

@@ -1,6 +1,7 @@
 using ApiAggregation.Authentication;
 using ApiAggregation.Authentication.Models;
 using ApiAggregation.Authentication.Services;
+using ApiAggregation.Configuration;
 using ApiAggregation.UnitTests.Fakes;
 using Bogus;
 using Microsoft.Extensions.Options;

@@ -1,4 +1,4 @@
-namespace ApiAggregation.ExternalApis.Models;
+namespace ApiAggregation.Configuration;
 
 public class SpotifyTokenSettings
 {

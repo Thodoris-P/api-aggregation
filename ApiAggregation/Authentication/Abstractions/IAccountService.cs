@@ -1,4 +1,4 @@
-using ApiAggregation.Authentication.DTOs;
+using ApiAggregation.Authentication.Contracts;
 
 namespace ApiAggregation.Authentication.Abstractions;
 

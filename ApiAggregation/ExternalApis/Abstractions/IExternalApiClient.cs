@@ -1,3 +1,4 @@
+using ApiAggregation.Configuration;
 using ApiAggregation.ExternalApis.Models;
 
 namespace ApiAggregation.ExternalApis.Abstractions;

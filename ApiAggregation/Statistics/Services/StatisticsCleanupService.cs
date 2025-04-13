@@ -1,3 +1,4 @@
+using ApiAggregation.Configuration;
 using ApiAggregation.Infrastructure.Abstractions;
 using ApiAggregation.Statistics.Abstractions;
 using ApiAggregation.Statistics.Models;

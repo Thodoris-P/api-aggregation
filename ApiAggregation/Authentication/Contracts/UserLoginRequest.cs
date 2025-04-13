@@ -1,3 +1,3 @@
-namespace ApiAggregation.Authentication.DTOs;
+namespace ApiAggregation.Authentication.Contracts;
 
 public record UserLoginRequest(string Username, string Password);

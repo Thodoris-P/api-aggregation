@@ -1,4 +1,4 @@
-namespace ApiAggregation.Aggregation.Models;
+namespace ApiAggregation.Configuration;
 
 public class AggregatorSettings
 {

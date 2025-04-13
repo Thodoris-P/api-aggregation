@@ -9,6 +9,7 @@ using ApiAggregation.Authentication;
 using ApiAggregation.Authentication.Abstractions;
 using ApiAggregation.Authentication.Models;
 using ApiAggregation.Authentication.Services;
+using ApiAggregation.Configuration;
 using ApiAggregation.ExternalApis;
 using ApiAggregation.ExternalApis.Abstractions;
 using ApiAggregation.ExternalApis.ConcreteClients;

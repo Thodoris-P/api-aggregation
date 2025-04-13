@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using ApiAggregation.Aggregation.Models;
+using ApiAggregation.Configuration;
 using ApiAggregation.Infrastructure.Attributes;
 using ApiAggregation.Statistics.Abstractions;
 using Microsoft.Extensions.Options;

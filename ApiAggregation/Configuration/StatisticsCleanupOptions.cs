@@ -1,4 +1,4 @@
-namespace ApiAggregation.Statistics.Models;
+namespace ApiAggregation.Configuration;
 
 public class StatisticsCleanupOptions
 {
