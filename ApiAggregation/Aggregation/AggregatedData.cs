@@ -7,5 +7,5 @@ public class AggregatedData
 
 public class AggregatorSettings
 {
-    public string AggregatorName { get; set; } = string.Empty;
+    public string AggregatorName { get; set; }
 }

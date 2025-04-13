@@ -14,12 +14,11 @@ public class StatisticsCleanupOptions
 public class StatisticsCleanupService(
     ILogger<StatisticsCleanupService> logger,
     IStatisticsService statisticsService,
+    IDateTimeProvider dateTimeProvider,
     IOptions<StatisticsCleanupOptions> options)
     : BackgroundService
 {
-    // Assumes you can inject this implementation
     private readonly StatisticsCleanupOptions _options = options.Value;
-
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -30,7 +29,7 @@ public class StatisticsCleanupService(
             try
             {
                 statisticsService.CleanupOldEntries(_options.RetentionPeriod);
-                logger.LogInformation("Cleanup completed at {Time}", DateTime.UtcNow);
+                logger.LogInformation("Cleanup completed at {Time}", dateTimeProvider.UtcNow);
             }
             catch (Exception ex)
             {

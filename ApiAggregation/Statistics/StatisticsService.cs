@@ -20,6 +20,16 @@ public class ApiPerformanceRecord
     public long ResponseTimeInMilliseconds { get; set; }
 }
 
+public interface IDateTimeProvider
+{
+    DateTime UtcNow { get; }
+}
+
+public class SystemDateTimeProvider : IDateTimeProvider
+{
+    public DateTime UtcNow => DateTime.UtcNow;
+}
+
 public class ApiStatistics
 {
     public double AverageResponseTime { get; set; }
@@ -28,12 +38,19 @@ public class ApiStatistics
     public int TotalRequests { get; set; }
 }
 
+enum ApiSpeedBucketNames
+{
+    Fast,
+    Medium,
+    Slow
+}
+
 // In a real world scenario, we would use a more sophisticated approach
 // because now we are storing data indefinitely which will eventually be bad for memory usage
 // We could use a sliding window or a fixed size buffer to limit the number of stored times,
 // but .NET doesn't provide such a structure out of the box
 // and implementing one would be out of scope for this assignment
-public class StatisticsService(HybridCache hybridCache) : IStatisticsService
+public class StatisticsService(HybridCache hybridCache, IDateTimeProvider dateTimeProvider) : IStatisticsService
 {
     private readonly ConcurrentDictionary<string, ConcurrentQueue<ApiPerformanceRecord>> _requestRecords = new();
     
@@ -98,14 +115,14 @@ public class StatisticsService(HybridCache hybridCache) : IStatisticsService
         var queue = _requestRecords.GetOrAdd(apiName, _ => new ConcurrentQueue<ApiPerformanceRecord>());
         queue.Enqueue(new ApiPerformanceRecord
         {
-            Timestamp = DateTime.UtcNow,
+            Timestamp = dateTimeProvider.UtcNow,
             ResponseTimeInMilliseconds = elapsedMilliseconds
         });
     }
     
     public void CleanupOldEntries(TimeSpan retentionPeriod)
     {
-        var threshold = DateTime.UtcNow.Subtract(retentionPeriod);
+        var threshold = dateTimeProvider.UtcNow.Subtract(retentionPeriod);
     
         foreach (var queue in _requestRecords.Values)
         {

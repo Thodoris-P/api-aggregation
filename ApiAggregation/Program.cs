@@ -274,6 +274,7 @@ builder.Services.AddHostedService<StatisticsCleanupService>();
 // Bind PerformanceMonitoringOptions from your configuration (e.g., appsettings.json).
 builder.Services.Configure<PerformanceMonitoringOptions>(builder.Configuration.GetSection("PerformanceMonitoringOptions"));
 builder.Services.AddHostedService<PerformanceMonitoringService>();
+builder.Services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
 var app = builder.Build();
 

@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		compose.yaml = compose.yaml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiAggregation.Tests", "ApiAggregation.Tests\ApiAggregation.Tests.csproj", "{E1DA9863-F1BE-4FC2-B0A9-3F8D91EBA3AE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,5 +19,9 @@ Global
 		{EDD4BBFB-2D58-491F-B7E1-A6F628E9C0B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EDD4BBFB-2D58-491F-B7E1-A6F628E9C0B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EDD4BBFB-2D58-491F-B7E1-A6F628E9C0B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1DA9863-F1BE-4FC2-B0A9-3F8D91EBA3AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1DA9863-F1BE-4FC2-B0A9-3F8D91EBA3AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1DA9863-F1BE-4FC2-B0A9-3F8D91EBA3AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1DA9863-F1BE-4FC2-B0A9-3F8D91EBA3AE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
