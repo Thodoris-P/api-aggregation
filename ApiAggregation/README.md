@@ -2,20 +2,40 @@
 
 ## Overview
 This service is designed to aggregate data from multiple APIs and provide a unified response.
-It uses the adapter pattern to integrate with different APIs seamlessly.
+I could not come up with a clever idea of combining the entirely different APIs into one single response.
+For that reason, I decided to create a simple API that will return the data from the APIs in a single response, and provide some filtering.
+
+## Flexible API Integration Design
+In order to allow for multiple and easy integration of third party APIs, I decided to use the adapter pattern.
+The adapter pattern allows us to create a common interface for different APIs, making it easier to integrate and use them interchangeably.
+It acts as a translator between our unified endpoint and interface and each individual external API.
+
+### How it works
+- Each external API integration implements a common BaseApiClient interface. This abstraction hides the complexities of JSON parsing, fallback mechanisms, logging, and exception handling behind a standardized contract.
+- Adding a new API is as simple as creating a new adapter that adheres to the BaseApiClient contract. This minimizes the amount of refactoring needed when introducing new data sources.
+- The adapter decouples the service logic from the external API specifics. Changes in the external APIs (like endpoint changes or additional authentication requirements) only necessitate updates to the corresponding adapter rather than the entire codebase.
+  - In cases where the API needs something extra like authentication or special headers, it can easily be added to its adapter without affecting the rest of the code.
+
+### Why
+Maintainability: Changes or enhancements to one API integration don't directly impact others.
+
+Scalability: New APIs can be added quickly without reworking the entire aggregation logic.
+
+Testability: With a standard interface, each adapter can be individually mocked or tested, improving overall test coverage.
+
+### Implementation specifics
 All you need to do to add a new API is to create an Adapter implementing the BaseApiClient (that will handle json parsing, fallbacks, exceptions etc.)
 You need to also inject the API settings (clientKey etc.) and adapt the request filter to your API needs.
-In cases where the API needs something extra like authentication or special headers, you can provide them in your adapter (see spotify).
-Using the decorator pattern, we add caching functionality to the API clients without modifying their code.
+
+### Caching
+Utilizing the decorator pattern, we can easily add additional functionality --in our case caching-- to the API client,
+without modifying the underlying API client code. It allows extending the behaviour of the api client without modifying its structure.
+
 
 Current Implemented APIs:
 - OpenWeatherMap API: https://openweathermap.org/api
 - News API: https://newsapi.org/
 - Spotify Web API
-
-I could not come up with a clever idea of combining the entirely different APIs into one single response.
-For that reason, I decided to create a simple API that will return the data from the APIs in a single response, and provide some filtering.
-
 
 ## API Endpoints
 ### POST /api/aggregation
@@ -71,7 +91,7 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
 ```json
 {
   "username": "exampleUser",
-  "password": "StrongPassword123",
+  "password": "StrongPassword123"
 }
 ```
 - **Response**:
@@ -87,12 +107,12 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
 
 
 ### POST /api/authentication/login
-- **Description**: Registers a new user.
+- **Description**: Logins a user and returns the jwt token and refreshToken.
 - **Request Body Example**:
 ```json
 {
   "username": "exampleUser",
-  "password": "StrongPassword123",
+  "password": "StrongPassword123"
 }
 ```
 - **Response**:
@@ -106,7 +126,7 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
 ```
 
 ### POST /api/authentication/refresh
-- **Description**: Registers a new user.
+- **Description**: Refreshes a user tokens.
 - **Request Body Example**:
 ```json
 {
@@ -123,6 +143,18 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
 }
 ```
 
+
+## HOW TO RUN
+1. Clone the repository.
+2. Open the solution in Visual Studio or your preferred IDE.
+3. Restore the NuGet packages.
+4. Make sure to API keys and JWT secret in the appsettings.
+5. Run the application 
+
+   5.1. using `dotnet run` or through your IDE.
+
+   5.2. using `docker compose up` to spin up a container using the provided Dockerfile and Compose.
+6. Use the .http file or any API testing tool to test the endpoints.
 
 
 ## Implementation Specifics
@@ -143,12 +175,21 @@ but since we need to provide enough filters to integrate with all sorts of APIs,
     - That was done because in this scope, the statistics are stored in memory, and we need to clean them up after a while.
     - I wanted to use a sliding window or circular buffer, but the bcl does not provide that functionality, so I went with the concurrent Queue.
 - Use a JWT bearer authentication scheme, with an AccountsController to handle user registration and login by using a custom in-memory AccountService.
+- Use Serilog for logging, and logging the requests
 
 ## Known Bugs:
 - Statistics endpoint returns cached Empty Response.
 
-## Final Notes & Observations:
+
+## Final Notes & Observations & Feature Improvements:
 - I tried to tackle each and every requirement in the task description, and I think that finally backfired.
 - Given more time I would have made the code more testable and added more unit tests (test coverage is low).
   - For example, some classes have more than one responsibility, some classes use the stopwotch directly, etc.
+- I would have also logged more consistently.
 - I chose Microsoft HybridCache for caching, but it was a bit difficult to set up in tests and I used that github issue (https://github.com/dotnet/extensions/issues/5763)
+- It did not occur to me to implement change password or password reset. (Yet again it is an in-memory store).
+- I would have liked to provide a proper swagger with all the endpoints, contracts, and examples.
+- I also did not have the time to sort out the mess in Program.cs and the duplicate code for setting up resilience for every httpclient
+- I'd like to add more meaningful filters so that a better response can be provided.
+- Write a better README.md (going more into implementation details and why things are the way they are).
+- Many more
