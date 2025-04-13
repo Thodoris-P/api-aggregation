@@ -1,6 +1,5 @@
 using ApiAggregation.Configuration;
 using ApiAggregation.ExternalApis.Abstractions;
-using ApiAggregation.ExternalApis.Models;
 using Microsoft.Extensions.Options;
 
 namespace ApiAggregation.ExternalApis.ConcreteClients;

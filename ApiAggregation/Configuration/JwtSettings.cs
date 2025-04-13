@@ -2,9 +2,9 @@ namespace ApiAggregation.Configuration;
 
 public class JwtSettings
 {
-    public string Key { get; set; } = null!;
-    public int ExpiryInMinutes { get; set; }
-    public int RefreshTokenExpiryInDays { get; set; }
-    public string Issuer { get; set; } = null!;
-    public string Audience { get; set; } = null!;
+    public required string Key { get; init; }
+    public int ExpiryInMinutes { get; init; }
+    public int RefreshTokenExpiryInDays { get; init; }
+    public required string Issuer { get; init; }
+    public required string Audience { get; init; }
 }

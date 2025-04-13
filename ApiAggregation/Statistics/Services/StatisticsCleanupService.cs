@@ -1,7 +1,6 @@
 using ApiAggregation.Configuration;
 using ApiAggregation.Infrastructure.Abstractions;
 using ApiAggregation.Statistics.Abstractions;
-using ApiAggregation.Statistics.Models;
 using Microsoft.Extensions.Options;
 
 namespace ApiAggregation.Statistics.Services;

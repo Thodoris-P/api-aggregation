@@ -11,8 +11,8 @@ public abstract class BaseApiClient : IExternalApiClient
     public abstract string ApiName { get; }
     public ApiSettings Settings { get; }
     private readonly ILogger<BaseApiClient> _logger;
-    private static string _fallbackMessage = "Service unavailable";
-    
+    private const string FallbackMessage = "Service unavailable";
+
     protected BaseApiClient(IHttpClientFactory httpClientFactory, IOptions<ApiSettings> settings, ILogger<BaseApiClient> logger)
     {
         HttpClient = httpClientFactory.CreateClient(ApiName);
@@ -38,7 +38,7 @@ public abstract class BaseApiClient : IExternalApiClient
             {
                 ApiName = ApiName,
                 IsSuccess = false,
-                Content = _fallbackMessage,
+                Content = FallbackMessage,
                 IsFallback = false
             };
         }
@@ -65,7 +65,7 @@ public abstract class BaseApiClient : IExternalApiClient
             {
                 ApiName = ApiName,
                 IsSuccess = false,
-                Content = _fallbackMessage,
+                Content = FallbackMessage,
                 IsFallback = true
             };
         }

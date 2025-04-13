@@ -4,3 +4,5 @@
     build:
       context: .
       dockerfile: ApiAggregation/Dockerfile
+    ports:
+      - 8080:8080
