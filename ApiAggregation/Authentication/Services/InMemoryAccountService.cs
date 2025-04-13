@@ -2,39 +2,23 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using ApiAggregation.Authentication.Abstractions;
+using ApiAggregation.Authentication.DTOs;
+using ApiAggregation.Authentication.Models;
+using ApiAggregation.Infrastructure.Abstractions;
+using ApiAggregation.Infrastructure.Providers;
 using ApiAggregation.Statistics;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
-namespace ApiAggregation.Authentication;
+namespace ApiAggregation.Authentication.Services;
 
-public interface IAccountService
-{
-    AuthResponse Register(string username, string password);
-    AuthResponse Login(string username, string password);
-    AuthResponse RefreshToken(string refreshToken);
-}
-
-public class AuthResponse
-{
-    public bool IsSuccessful { get; set; }
-    public string Message { get; set; }
-    public string Token { get; set; }
-    public string RefreshToken { get; set; }
-}
-
-public class InMemoryAccountService : IAccountService
+public class InMemoryAccountService(IDateTimeProvider dateTimeProvider, IOptions<JwtSettings> jwtSettings)
+    : IAccountService
 {
     private readonly List<User> _users = [];
-    private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly JwtSettings _jwtSettings;
-    
-    public InMemoryAccountService(IDateTimeProvider dateTimeProvider, IOptions<JwtSettings> jwtSettings)
-    {
-        _dateTimeProvider = dateTimeProvider;
-        _jwtSettings = jwtSettings.Value;
-    }
-    
+    private readonly JwtSettings _jwtSettings = jwtSettings.Value;
+
     public AuthResponse Register(string username, string password)
     {
         if (_users.Any(u => u.Username.Equals(username, StringComparison.OrdinalIgnoreCase)))
@@ -80,7 +64,7 @@ public class InMemoryAccountService : IAccountService
         string refreshToken = GenerateRefreshToken();
         user.RefreshToken = refreshToken;
         int refreshExpiryInDays = _jwtSettings.RefreshTokenExpiryInDays;
-        user.RefreshTokenExpiryTime = _dateTimeProvider.UtcNow.AddDays(refreshExpiryInDays);
+        user.RefreshTokenExpiryTime = dateTimeProvider.UtcNow.AddDays(refreshExpiryInDays);
         return new AuthResponse
         {
             IsSuccessful = true,
@@ -93,7 +77,7 @@ public class InMemoryAccountService : IAccountService
     public AuthResponse RefreshToken(string refreshToken)
     {
         var user = _users.FirstOrDefault(u => u.RefreshToken == refreshToken);
-        if (user == null || user.RefreshTokenExpiryTime <= _dateTimeProvider.UtcNow)
+        if (user == null || user.RefreshTokenExpiryTime <= dateTimeProvider.UtcNow)
         {
             return new AuthResponse
             {
@@ -107,7 +91,7 @@ public class InMemoryAccountService : IAccountService
 
         user.RefreshToken = newRefreshToken;
         int refreshExpiryInDays = _jwtSettings.RefreshTokenExpiryInDays;
-        user.RefreshTokenExpiryTime = _dateTimeProvider.UtcNow.AddDays(refreshExpiryInDays);
+        user.RefreshTokenExpiryTime = dateTimeProvider.UtcNow.AddDays(refreshExpiryInDays);
 
         return new AuthResponse {
             IsSuccessful = true,
@@ -129,7 +113,7 @@ public class InMemoryAccountService : IAccountService
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username)
             ]),
-            Expires = _dateTimeProvider.UtcNow.AddMinutes(expiryInMinutes),
+            Expires = dateTimeProvider.UtcNow.AddMinutes(expiryInMinutes),
             Issuer = _jwtSettings.Issuer,
             Audience = _jwtSettings.Audience,
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -165,23 +149,4 @@ public class InMemoryAccountService : IAccountService
     {
         _users.Clear();
     }
-}
-
-public class JwtSettings
-{
-    public string Key { get; set; } = null!;
-    public int ExpiryInMinutes { get; set; }
-    public int RefreshTokenExpiryInDays { get; set; }
-    public string Issuer { get; set; } = null!;
-    public string Audience { get; set; } = null!;
-}
-
-public class User
-{
-    public Guid Id { get; set; }
-    public string Username { get; set; } = string.Empty;
-    public byte[] PasswordHash { get; set; } = [];
-    public byte[] PasswordSalt { get; set; } = [];
-    public string? RefreshToken { get; set; }
-    public DateTime RefreshTokenExpiryTime { get; set; }
 }

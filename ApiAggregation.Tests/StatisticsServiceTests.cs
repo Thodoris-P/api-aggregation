@@ -1,4 +1,7 @@
 using ApiAggregation.Statistics;
+using ApiAggregation.Statistics.Models;
+using ApiAggregation.Statistics.Services;
+using ApiAggregation.UnitTests.Fakes;
 using Bogus;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;

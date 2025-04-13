@@ -1,17 +1,15 @@
+using ApiAggregation.Authentication.Abstractions;
+using ApiAggregation.Authentication.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ApiAggregation.Authentication;
-
-
-public record UserLogin(string Username, string Password);
-public record RefreshTokenRequest(string RefreshToken);
+namespace ApiAggregation.Authentication.Controllers;
 
 [ApiController]
 [Route("api/authentication")]
 public class AccountController(IAccountService accountService) : ControllerBase
 {
     [HttpPost("register")]
-    public IActionResult Register([FromBody] UserLogin user)
+    public IActionResult Register([FromBody] UserLoginRequest user)
     {
         var authResponse = accountService.Register(user.Username, user.Password);
         if (authResponse.IsSuccessful)
@@ -22,7 +20,7 @@ public class AccountController(IAccountService accountService) : ControllerBase
     }
 
     [HttpPost("login")]
-    public IActionResult Login([FromBody] UserLogin user)
+    public IActionResult Login([FromBody] UserLoginRequest user)
     {
         var authResponse = accountService.Login(user.Username, user.Password);
         if (authResponse.IsSuccessful)

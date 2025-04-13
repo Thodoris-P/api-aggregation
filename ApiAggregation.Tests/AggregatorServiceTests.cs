@@ -1,5 +1,9 @@
 using ApiAggregation.Aggregation;
+using ApiAggregation.Aggregation.Models;
+using ApiAggregation.Aggregation.Services;
 using ApiAggregation.ExternalApis;
+using ApiAggregation.ExternalApis.Abstractions;
+using ApiAggregation.ExternalApis.Models;
 using Bogus;
 using Moq;
 

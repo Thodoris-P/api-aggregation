@@ -1,4 +1,7 @@
 ﻿using ApiAggregation.Authentication;
+using ApiAggregation.Authentication.Abstractions;
+using ApiAggregation.Authentication.Controllers;
+using ApiAggregation.Authentication.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Shouldly;
@@ -9,14 +12,14 @@ public class AccountControllerTests
 {
     private readonly Mock<IAccountService> _mockAccountService;
     private readonly AccountController _controller;
-    private readonly UserLogin _defaultUser;
+    private readonly UserLoginRequest _defaultUser;
     private readonly RefreshTokenRequest _defaultRefreshRequest;
 
     public AccountControllerTests()
     {
         _mockAccountService = new Mock<IAccountService>();
         _controller = new AccountController(_mockAccountService.Object);
-        _defaultUser = new UserLogin("testuser", "password");
+        _defaultUser = new UserLoginRequest("testuser", "password");
         _defaultRefreshRequest = new RefreshTokenRequest("sample-refresh-token");
     }
 

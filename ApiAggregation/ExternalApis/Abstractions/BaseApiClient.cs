@@ -1,8 +1,8 @@
-namespace ApiAggregation.ExternalApis.Abstractions;
-
-// BaseApiClient.cs
 using System.Text.Json;
+using ApiAggregation.ExternalApis.Models;
 using Microsoft.Extensions.Options;
+
+namespace ApiAggregation.ExternalApis.Abstractions;
 
 public abstract class BaseApiClient : IExternalApiClient
 {

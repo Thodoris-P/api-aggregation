@@ -1,11 +1,8 @@
-using ApiAggregation.ExternalApis;
+using ApiAggregation.Aggregation.Abstractions;
+using ApiAggregation.Aggregation.Models;
+using ApiAggregation.ExternalApis.Abstractions;
 
-namespace ApiAggregation.Aggregation;
-
-public interface IAggregatorService
-{
-    Task<AggregatedData> GetAggregatedDataAsync(IExternalApiFilter filterOptions);
-}
+namespace ApiAggregation.Aggregation.Services;
 
 public class AggregatorService(IEnumerable<IExternalApiClient> apiClients) : IAggregatorService
 {

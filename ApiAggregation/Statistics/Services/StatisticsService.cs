@@ -1,55 +1,12 @@
 using System.Collections.Concurrent;
+using ApiAggregation.Infrastructure.Abstractions;
+using ApiAggregation.Statistics.Abstractions;
+using ApiAggregation.Statistics.Models;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Options;
 
-namespace ApiAggregation.Statistics;
+namespace ApiAggregation.Statistics.Services;
 
-public interface IStatisticsService
-{
-    Task<Dictionary<PerformanceBucket, Dictionary<string, ApiStatistics>>> GetApiStatistics();
-    void UpdateApiStatistics(string apiName, long elapsedMilliseconds);
-    List<ApiPerformanceRecord> GetApiPerformanceRecords(string apiName, DateTime since);
-    void CleanupOldEntries(TimeSpan retentionPeriod);
-    IEnumerable<string> GetAllApiNames();
-}
-
-public class ApiPerformanceRecord
-{
-    public DateTime Timestamp { get; set; }
-    public long ResponseTimeInMilliseconds { get; set; }
-}
-
-public interface IDateTimeProvider
-{
-    DateTime UtcNow { get; }
-}
-
-public class SystemDateTimeProvider : IDateTimeProvider
-{
-    public DateTime UtcNow => DateTime.UtcNow;
-}
-
-public class ApiStatistics
-{
-    public double AverageResponseTime { get; set; }
-    public long MinResponseTime { get; set; }
-    public long MaxResponseTime { get; set; }
-    public int TotalRequests { get; set; }
-}
-
-
-public enum PerformanceBucket
-{
-    Fast,
-    Medium,
-    Slow
-}
-
-// In a real world scenario, we would use a more sophisticated approach
-// because now we are storing data indefinitely which will eventually be bad for memory usage
-// We could use a sliding window or a fixed size buffer to limit the number of stored times,
-// but .NET doesn't provide such a structure out of the box
-// and implementing one would be out of scope for this assignment
 public class StatisticsService(HybridCache hybridCache, IDateTimeProvider dateTimeProvider, IOptions<StatisticsThresholds> thresholds) : IStatisticsService
 {
     private readonly ConcurrentDictionary<string, ConcurrentQueue<ApiPerformanceRecord>> _requestRecords = new();
@@ -156,10 +113,4 @@ public class StatisticsService(HybridCache hybridCache, IDateTimeProvider dateTi
     {
         return _requestRecords.TryGetValue(apiName, out var queue) ? queue.Where(record => record.Timestamp >= since).ToList() : [];
     }
-}
-
-public class StatisticsThresholds
-{
-    public double FastUpperLimit { get; set; }
-    public double MediumUpperLimit { get; set; }
 }

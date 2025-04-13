@@ -1,20 +1,16 @@
-using System.Text.Json;
 using ApiAggregation.ExternalApis.Abstractions;
+using ApiAggregation.ExternalApis.Models;
 using Microsoft.Extensions.Options;
 
-namespace ApiAggregation.ExternalApis;
+namespace ApiAggregation.ExternalApis.ConcreteClients;
 
 public class NewsApiSettings : ApiSettings
 {
 }
 
-public class NewsClient : BaseApiClient
+public class NewsClient(IHttpClientFactory httpClientFactory, IOptions<NewsApiSettings> settings)
+    : BaseApiClient(httpClientFactory, settings)
 {
-    public NewsClient(IHttpClientFactory httpClientFactory, IOptions<NewsApiSettings> settings) 
-        : base(httpClientFactory, settings)
-    {
-    }
-
     public override string ApiName => "NewsApi";
 
 

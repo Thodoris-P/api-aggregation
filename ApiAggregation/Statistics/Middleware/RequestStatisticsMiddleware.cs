@@ -1,8 +1,10 @@
 using System.Diagnostics;
-using ApiAggregation.Aggregation;
+using ApiAggregation.Aggregation.Models;
+using ApiAggregation.Infrastructure.Attributes;
+using ApiAggregation.Statistics.Abstractions;
 using Microsoft.Extensions.Options;
 
-namespace ApiAggregation.Statistics;
+namespace ApiAggregation.Statistics.Middleware;
 
 public class RequestStatisticsMiddleware(
     RequestDelegate next,

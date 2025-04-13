@@ -1,18 +1,17 @@
-using System.Text.Json;
 using ApiAggregation.ExternalApis.Abstractions;
+using ApiAggregation.ExternalApis.Models;
 using Microsoft.Extensions.Options;
 
+namespace ApiAggregation.ExternalApis.ConcreteClients;
 
-namespace ApiAggregation.ExternalApis;
+public class OpenWeatherMapSettings : ApiSettings
+{
+}
 
-public class OpenWeatherMapClient : BaseApiClient
+public class OpenWeatherMapClient(IHttpClientFactory httpClientFactory, IOptions<OpenWeatherMapSettings> settings)
+    : BaseApiClient(httpClientFactory, settings)
 {
     public override string ApiName => "OpenWeatherMap";
-
-    public OpenWeatherMapClient(IHttpClientFactory httpClientFactory, IOptions<OpenWeatherMapSettings> settings):
-        base(httpClientFactory, settings)
-    {
-    }
 
     protected override Task SetupClient(IExternalApiFilter filterOptions)
     {
@@ -27,26 +26,3 @@ public class OpenWeatherMapClient : BaseApiClient
     }
 }
 
-public abstract class ExternalApiClientException(string message) : Exception(message) { }
-
-public abstract class WeatherServiceException(string message) : ExternalApiClientException(message);
-
-public class WeatherServiceNullResponseException : WeatherServiceException
-{
-    public IExternalApiFilter FilterOptions { get; set; }
-    public WeatherServiceNullResponseException(IExternalApiFilter filterOptions) : base($"The response from the Weather Service was null. Provided FilterOptions: {filterOptions:C}")
-    {
-        FilterOptions = filterOptions;
-    }
-}
-
-public class ApiSettings
-{
-    public string ApiKey { get; set; }
-    public string BaseUrl { get; set; }
-    public TimeSpan CacheDuration { get; set; }
-}
-
-public class OpenWeatherMapSettings : ApiSettings
-{
-}

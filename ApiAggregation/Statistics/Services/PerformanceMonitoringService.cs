@@ -1,16 +1,9 @@
-using ApiAggregation.Aggregation;
+using ApiAggregation.Aggregation.Models;
+using ApiAggregation.Statistics.Abstractions;
+using ApiAggregation.Statistics.Models;
 using Microsoft.Extensions.Options;
 
-namespace ApiAggregation.Statistics;
-
-public class PerformanceMonitoringOptions
-{
-    // The time window over which performance statistics are aggregated (e.g., last 5 minutes).
-    public TimeSpan AnalysisPeriod { get; set; }
-
-    // The frequency at which the performance analysis is executed.
-    public TimeSpan CheckInterval { get; set; }
-}
+namespace ApiAggregation.Statistics.Services;
 
 public class PerformanceMonitoringService(
     ILogger<PerformanceMonitoringService> logger,
