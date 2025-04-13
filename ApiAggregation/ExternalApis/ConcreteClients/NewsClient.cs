@@ -9,13 +9,13 @@ public class NewsApiSettings : ApiSettings
 {
 }
 
-public class NewsClient(IHttpClientFactory httpClientFactory, IOptions<NewsApiSettings> settings)
-    : BaseApiClient(httpClientFactory, settings)
+public class NewsClient(IHttpClientFactory httpClientFactory, IOptions<NewsApiSettings> settings, ILogger<NewsClient> logger)
+    : BaseApiClient(httpClientFactory, settings, logger)
 {
     public override string ApiName => "NewsApi";
 
 
-    protected override Task SetupClient(IExternalApiFilter filterOptions)
+    protected override Task SetupClient()
     {
         return Task.FromResult(0);
     }

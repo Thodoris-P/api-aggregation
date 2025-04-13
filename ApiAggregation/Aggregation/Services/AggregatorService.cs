@@ -16,7 +16,7 @@ public class AggregatorService(IEnumerable<IExternalApiClient> apiClients) : IAg
             ApiResponses = responses.ToDictionary(
                 x => x.ApiName, 
                 x => JsonSerializer.Deserialize<JsonElement>(x.Content)
-            ),
+            )
         };
         return aggregatedData;
     }

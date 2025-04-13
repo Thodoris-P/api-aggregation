@@ -2,8 +2,8 @@ namespace ApiAggregation.Statistics.Models;
 
 public class ApiStatistics
 {
-    public double AverageResponseTime { get; set; }
-    public long MinResponseTime { get; set; }
-    public long MaxResponseTime { get; set; }
-    public int TotalRequests { get; set; }
+    public double AverageResponseTime { get; init; }
+    public long MinResponseTime { get; init; }
+    public long MaxResponseTime { get; init; }
+    public int TotalRequests { get; init; }
 }

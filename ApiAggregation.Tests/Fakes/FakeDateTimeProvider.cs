@@ -1,6 +1,4 @@
 using ApiAggregation.Infrastructure.Abstractions;
-using ApiAggregation.Infrastructure.Providers;
-using ApiAggregation.Statistics;
 
 namespace ApiAggregation.UnitTests.Fakes;
 

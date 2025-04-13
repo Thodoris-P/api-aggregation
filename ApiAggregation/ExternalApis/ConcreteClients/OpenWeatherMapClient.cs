@@ -9,12 +9,15 @@ public class OpenWeatherMapSettings : ApiSettings
 {
 }
 
-public class OpenWeatherMapClient(IHttpClientFactory httpClientFactory, IOptions<OpenWeatherMapSettings> settings)
-    : BaseApiClient(httpClientFactory, settings)
+public class OpenWeatherMapClient(
+    IHttpClientFactory httpClientFactory,
+    IOptions<OpenWeatherMapSettings> settings,
+    ILogger<OpenWeatherMapClient> logger)
+    : BaseApiClient(httpClientFactory, settings, logger)
 {
     public override string ApiName => "OpenWeatherMap";
 
-    protected override Task SetupClient(IExternalApiFilter filterOptions)
+    protected override Task SetupClient()
     {
         return Task.FromResult(0);
     }

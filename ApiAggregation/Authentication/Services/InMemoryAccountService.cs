@@ -47,7 +47,7 @@ public class InMemoryAccountService(IDateTimeProvider dateTimeProvider, IOptions
             return new AuthResponse(false, "Invalid credentials", null, null);
         }
         
-        string? jwtToken = GenerateJwtToken(user);
+        string jwtToken = GenerateJwtToken(user);
         string refreshToken = GenerateRefreshToken();
         UpdateUserRefreshToken(user, refreshToken);
         return new AuthResponse(true, "Login successful", jwtToken, refreshToken);

@@ -2,10 +2,10 @@ namespace ApiAggregation.Authentication.Models;
 
 public class User
 {
-    public Guid Id { get; set; }
-    public string Username { get; set; } = string.Empty;
-    public byte[] PasswordHash { get; set; } = [];
-    public byte[] PasswordSalt { get; set; } = [];
+    public Guid Id { get; init; }
+    public string Username { get; init; } 
+    public byte[] PasswordHash { get; init; } = [];
+    public byte[] PasswordSalt { get; init; } = [];
     public string? RefreshToken { get; set; }
     public DateTime RefreshTokenExpiryTime { get; set; }
 }

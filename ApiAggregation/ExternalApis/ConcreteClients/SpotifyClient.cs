@@ -14,12 +14,13 @@ public class SpotifySettings : ApiSettings
 public class SpotifyClient(
     IHttpClientFactory httpClientFactory,
     IOptions<SpotifySettings> newsApiSettings,
-    ISpotifyTokenService tokenService)
-    : BaseApiClient(httpClientFactory, newsApiSettings)
+    ISpotifyTokenService tokenService,
+    ILogger<SpotifyClient> logger)
+    : BaseApiClient(httpClientFactory, newsApiSettings, logger)
 {
     public override string ApiName => "Spotify";
 
-    protected override async Task SetupClient(IExternalApiFilter filterOptions)
+    protected override async Task SetupClient()
     {
         string token = await tokenService.GetAccessTokenAsync();
         HttpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

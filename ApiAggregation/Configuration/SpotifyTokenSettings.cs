@@ -2,9 +2,9 @@ namespace ApiAggregation.Configuration;
 
 public class SpotifyTokenSettings
 {
-    public string ClientId { get; set; }
-    public string ClientSecret { get; set; }
-    public TimeSpan TokenExpiration{ get; set; }
-    public string TokenUrl { get; set; }
-    public string GrantType { get; set; }
+    public required string ClientId { get; init; }
+    public required string ClientSecret { get; init; }
+    public TimeSpan TokenExpiration{ get; init; }
+    public required string TokenUrl { get; init; }
+    public required string GrantType { get; init; }
 }
