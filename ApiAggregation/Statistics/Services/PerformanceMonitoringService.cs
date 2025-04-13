@@ -14,6 +14,7 @@ public class PerformanceMonitoringService(
     : BackgroundService
 {
     private readonly PerformanceMonitoringOptions _options = options.Value;
+    private readonly AggregatorSettings _aggregatorSettings = aggregatorSettings.Value;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -80,13 +81,14 @@ public class PerformanceMonitoringService(
     {
         var allApiNames = statisticsService.GetAllApiNames();
         var externalNames = allApiNames
-            .Where(name => !name.Equals(aggregatorSettings.Value.AggregatorName, StringComparison.OrdinalIgnoreCase));
+            .Where(name => !name.Equals(_aggregatorSettings.AggregatorName, StringComparison.OrdinalIgnoreCase));
         return externalNames;
     }
 
     private double GetAggregatorAveragePerformanceSince(DateTime windowStart)
     {
-        var aggregatorRecords = statisticsService.GetApiPerformanceRecords(aggregatorSettings.Value.AggregatorName, windowStart);
+        var aggregatorRecords =
+            statisticsService.GetApiPerformanceRecords(_aggregatorSettings.AggregatorName, windowStart);
         double aggregatorAvg = aggregatorRecords.Count != 0
             ? aggregatorRecords.Average(r => r.ResponseTimeInMilliseconds)
             : 0;
