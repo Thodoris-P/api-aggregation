@@ -1,8 +1,6 @@
 using ApiAggregation.Statistics;
 using Microsoft.Extensions.Caching.Hybrid;
-using Moq;
-using System.Collections.Concurrent;
-using System.Reflection;
+using Microsoft.Extensions.Options;
 using Shouldly;
 
 namespace ApiAggregation.UnitTests;
@@ -19,10 +17,32 @@ internal sealed class FakeHybridCache : HybridCache
         CancellationToken cancellationToken = default) => default;
 }
 
+public class FakeDateTimeProvider : IDateTimeProvider
+{
+    public DateTime UtcNow { get; private set; }
+    private readonly DateTime _initialTime;
+
+    public FakeDateTimeProvider(DateTime initialTime)
+    {
+        UtcNow = initialTime;
+        _initialTime = initialTime;
+    }
+    
+    public void Advance(TimeSpan timeSpan)
+    {
+        UtcNow = UtcNow.Add(timeSpan);
+    }
+    
+    public void ResetTime(DateTime newTime)
+    {
+        UtcNow = _initialTime;
+    }
+}
+
 public class StatisticsServiceTests
 {
     private readonly StatisticsService _statisticsService;
-    private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly FakeDateTimeProvider _dateTimeProvider;
     private const string ApiName = "TestApi";
     private const string FastApi = "FastApi";
     private const string MediumApi = "MediumApi";
@@ -32,14 +52,20 @@ public class StatisticsServiceTests
     private const long MaxElapsedTime = 90;
     private const double AverageElapsedTime = (MinElapsedTime + MaxElapsedTime + MidElapsedTime) / 3;
     private const double DefaultTolerance = 0.001;
+    private const double FastUpperLimit = 100;
+    private const double MediumUpperLimit = 200;
 
     public StatisticsServiceTests()
     {
-        var mockDateTimeProvider = new Mock<IDateTimeProvider>();
         var fixedTime = new DateTime(2025, 01, 01, 12, 00, 00, DateTimeKind.Utc);
-        mockDateTimeProvider.Setup(provider => provider.UtcNow).Returns(fixedTime);
-        _dateTimeProvider = mockDateTimeProvider.Object;
-        _statisticsService = new StatisticsService(new FakeHybridCache(), _dateTimeProvider);
+        _dateTimeProvider = new FakeDateTimeProvider(fixedTime);
+        var thresholds = new StatisticsThresholds
+        {
+            FastUpperLimit = FastUpperLimit,
+            MediumUpperLimit = MediumUpperLimit,
+        };
+        var options = Options.Create(thresholds);
+        _statisticsService = new StatisticsService(new FakeHybridCache(), _dateTimeProvider, options);
     }
         
     
@@ -55,17 +81,17 @@ public class StatisticsServiceTests
         var stats = await _statisticsService.GetApiStatistics();
 
         // Assert: since the average is 70, the bucket is "Fast" (< 100ms)
-        stats.ShouldContainKey("Fast");
-        stats["Fast"].ShouldContainKey(ApiName);
+        stats.ShouldContainKey(PerformanceBucket.Fast);
+        stats[PerformanceBucket.Fast].ShouldContainKey(ApiName);
 
-        stats["Fast"][ApiName].TotalRequests.ShouldBe(3);
-        stats["Fast"][ApiName].AverageResponseTime.ShouldBe(AverageElapsedTime, DefaultTolerance);
-        stats["Fast"][ApiName].MinResponseTime.ShouldBe(MinElapsedTime);
-        stats["Fast"][ApiName].MaxResponseTime.ShouldBe(MaxElapsedTime);
+        stats[PerformanceBucket.Fast][ApiName].TotalRequests.ShouldBe(3);
+        stats[PerformanceBucket.Fast][ApiName].AverageResponseTime.ShouldBe(AverageElapsedTime, DefaultTolerance);
+        stats[PerformanceBucket.Fast][ApiName].MinResponseTime.ShouldBe(MinElapsedTime);
+        stats[PerformanceBucket.Fast][ApiName].MaxResponseTime.ShouldBe(MaxElapsedTime);
     }
 
     [Fact]
-    public void UpdateApiStatistics_AddsRecordAndIsRetrievable()
+    public void UpdateApiStatistics_ShouldAddRecord()
     {
         // Arrange
 
@@ -98,25 +124,8 @@ public class StatisticsServiceTests
     public void GetApiPerformanceRecords_FiltersRecordsBasedOnTimestamp()
     {
         // Arrange
-
-        // Add a record that is current (should be included)
         _statisticsService.UpdateApiStatistics(ApiName, 150);
-
-        // Use reflection to adjust timestamp for existing records.
-        // (Normally the service stamps DateTime.UtcNow so we simulate an older entry.)
-        var field = typeof(StatisticsService)
-            .GetField("_requestRecords", BindingFlags.NonPublic | BindingFlags.Instance);
-        var requestRecords = (ConcurrentDictionary<string, ConcurrentQueue<ApiPerformanceRecord>>) field.GetValue(_statisticsService);
-        if (requestRecords.TryGetValue(ApiName, out var queue))
-        {
-            // Modify each record's timestamp to simulate them being older than 10 minutes.
-            foreach (var record in queue.ToArray())
-            {
-                record.Timestamp = _dateTimeProvider.UtcNow.Subtract(TimeSpan.FromMinutes(10));
-            }
-        }
-
-        // Add another record that is recent.
+        _dateTimeProvider.Advance(TimeSpan.FromMinutes(10));
         _statisticsService.UpdateApiStatistics(ApiName, 200);
 
         // Act: get records since 5 minutes ago
@@ -131,26 +140,8 @@ public class StatisticsServiceTests
     public void CleanupOldEntries_RemovesRecordsOlderThanRetentionPeriod()
     {
         // Arrange
-        // Add a record that will later be marked as old.
         _statisticsService.UpdateApiStatistics(ApiName, 100);
-
-        // Access the private field _requestRecords via reflection.
-        var field = typeof(StatisticsService)
-            .GetField("_requestRecords", BindingFlags.NonPublic | BindingFlags.Instance);
-        var requestRecords = (ConcurrentDictionary<string, ConcurrentQueue<ApiPerformanceRecord>>) field.GetValue(_statisticsService);
-
-        // Modify the timestamp of all records for this API to be 2 days old.
-        if (requestRecords.TryGetValue(ApiName, out var queue))
-        {
-            // To modify, dequeue and re-enqueue with updated timestamp.
-            var tempList = queue.ToList();
-            queue.Clear();
-            foreach (var rec in tempList)
-            {
-                rec.Timestamp = _dateTimeProvider.UtcNow.Subtract(TimeSpan.FromDays(2));
-                queue.Enqueue(rec);
-            }
-        }
+        _dateTimeProvider.Advance(TimeSpan.FromDays(2));
 
         // Act: Cleanup entries older than 1 day.
         _statisticsService.CleanupOldEntries(TimeSpan.FromDays(1));
@@ -182,10 +173,10 @@ public class StatisticsServiceTests
 
         // Assert
         // FastApi should be in Fast bucket.
-        stats["Fast"].ShouldContainKey(FastApi);
+        stats[PerformanceBucket.Fast].ShouldContainKey(FastApi);
         // MediumApi should be in Medium bucket.
-        stats["Medium"].ShouldContainKey(MediumApi);
+        stats[PerformanceBucket.Medium].ShouldContainKey(MediumApi);
         // SlowApi should be in Slow bucket.
-        stats["Slow"].ShouldContainKey(SlowApi);
+        stats[PerformanceBucket.Slow].ShouldContainKey(SlowApi);
     }
 }
