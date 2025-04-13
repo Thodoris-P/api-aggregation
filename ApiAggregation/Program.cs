@@ -60,6 +60,8 @@ builder.Services.AddControllers();
 
 builder.Services.AddOpenApi();
 
+
+builder.Services.Configure<StatisticsThresholds>(builder.Configuration.GetSection("StatisticsThresholds"));
 builder.Services.AddSingleton<IStatisticsService, StatisticsService>();
 builder.Services.AddTransient<StatisticsHandler>();
 

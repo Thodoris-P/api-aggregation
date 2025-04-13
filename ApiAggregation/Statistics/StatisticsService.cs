@@ -1,13 +1,12 @@
 using System.Collections.Concurrent;
-using ApiAggregation.ExternalApis;
 using Microsoft.Extensions.Caching.Hybrid;
-using Microsoft.VisualBasic;
+using Microsoft.Extensions.Options;
 
 namespace ApiAggregation.Statistics;
 
 public interface IStatisticsService
 {
-    Task<Dictionary<string, Dictionary<string, ApiStatistics>>> GetApiStatistics();
+    Task<Dictionary<PerformanceBucket, Dictionary<string, ApiStatistics>>> GetApiStatistics();
     void UpdateApiStatistics(string apiName, long elapsedMilliseconds);
     List<ApiPerformanceRecord> GetApiPerformanceRecords(string apiName, DateTime since);
     void CleanupOldEntries(TimeSpan retentionPeriod);
@@ -38,7 +37,8 @@ public class ApiStatistics
     public int TotalRequests { get; set; }
 }
 
-enum ApiSpeedBucketNames
+
+public enum PerformanceBucket
 {
     Fast,
     Medium,
@@ -50,11 +50,12 @@ enum ApiSpeedBucketNames
 // We could use a sliding window or a fixed size buffer to limit the number of stored times,
 // but .NET doesn't provide such a structure out of the box
 // and implementing one would be out of scope for this assignment
-public class StatisticsService(HybridCache hybridCache, IDateTimeProvider dateTimeProvider) : IStatisticsService
+public class StatisticsService(HybridCache hybridCache, IDateTimeProvider dateTimeProvider, IOptions<StatisticsThresholds> thresholds) : IStatisticsService
 {
     private readonly ConcurrentDictionary<string, ConcurrentQueue<ApiPerformanceRecord>> _requestRecords = new();
+    private readonly StatisticsThresholds _thresholds = thresholds.Value;
     
-    public async Task<Dictionary<string, Dictionary<string, ApiStatistics>>> GetApiStatistics()
+    public async Task<Dictionary<PerformanceBucket, Dictionary<string, ApiStatistics>>> GetApiStatistics()
     {
         const string cacheKey = "stats_data";
 
@@ -63,14 +64,14 @@ public class StatisticsService(HybridCache hybridCache, IDateTimeProvider dateTi
         return cachedResponse;
     }
 
-    private static Dictionary<string, Dictionary<string, ApiStatistics>> PerformStatisticsCalculations(
+    private Dictionary<PerformanceBucket, Dictionary<string, ApiStatistics>> PerformStatisticsCalculations(
         ConcurrentDictionary<string, ConcurrentQueue<ApiPerformanceRecord>> requestRecords)
     {
-        var result = new Dictionary<string, Dictionary<string, ApiStatistics>>
+        var result = new Dictionary<PerformanceBucket, Dictionary<string, ApiStatistics>>
         {
-            ["Fast"] = [],
-            ["Medium"] = [],
-            ["Slow"] = []
+            [PerformanceBucket.Fast] = [],
+            [PerformanceBucket.Medium] = [],
+            [PerformanceBucket.Slow] = []
         };
         
         foreach ((string? apiName, var times) in requestRecords)
@@ -91,21 +92,26 @@ public class StatisticsService(HybridCache hybridCache, IDateTimeProvider dateTi
                 MaxResponseTime = maxTime
             };
 
-            string bucket = GetPerformanceBucket(averageTime);
+            var bucket = GetPerformanceBucket(averageTime);
             result[bucket].Add(apiName, stats);
         }
         
         return result;
     }
 
-    private static string GetPerformanceBucket(double averageTime)
+    private PerformanceBucket GetPerformanceBucket(double averageTime)
     {
-        return averageTime switch
+        if (averageTime < _thresholds.FastUpperLimit)
         {
-            < 100 => "Fast",
-            < 200 => "Medium",
-            _ => "Slow"
-        };
+            return PerformanceBucket.Fast;
+        }
+
+        if (averageTime < _thresholds.MediumUpperLimit)
+        {
+            return PerformanceBucket.Medium;
+        }
+
+        return PerformanceBucket.Slow;
     }
 
     public void UpdateApiStatistics(string apiName, long elapsedMilliseconds)
@@ -150,4 +156,10 @@ public class StatisticsService(HybridCache hybridCache, IDateTimeProvider dateTi
     {
         return _requestRecords.TryGetValue(apiName, out var queue) ? queue.Where(record => record.Timestamp >= since).ToList() : [];
     }
+}
+
+public class StatisticsThresholds
+{
+    public double FastUpperLimit { get; set; }
+    public double MediumUpperLimit { get; set; }
 }
